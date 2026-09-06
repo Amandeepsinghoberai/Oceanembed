@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OceanEmbed — surface to 1000 m</title>
+
+<!-- OPTIONAL: matches your existing design system. Delete if you already load these. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+/* ══════════════════════════════════════════════════════════════
+   1. LAYOUT
+   The scroll-track is tall and empty. The stage inside it is
+   sticky, so it stays glued to the screen while you scroll past
+   the track's height. That scrolled distance becomes "progress".
+   ══════════════════════════════════════════════════════════════ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: auto; }
+
+body {
+  margin: 0;
+  background: #02101f;
+  font-family: "Public Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Total scroll distance for the whole sequence. Raise for a slower,
+   more cinematic feel; lower for a snappier one. */
+.ocean-track {
+  position: relative;
+  height: 460vh;
+}
+
+.ocean-stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100svh;          /* avoids mobile browser-chrome jump */
+  overflow: hidden;
+}
+
+.ocean-scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Groups we animate. transform-box makes CSS transforms use the
+   SVG's own coordinate units, so 1px here == 1 viewBox unit. */
+.ocean-scene .anim {
+  transform-box: view-box;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   2. HTML OVERLAY (crisper text than SVG <text> at small sizes)
+   ══════════════════════════════════════════════════════════════ */
+
+.ocean-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: #eaf7ff;
+}
+
+/* Live depth counter — JS positions this to track the float. */
+.depth-readout {
+  position: absolute;
+  transform: translate(-100%, -50%);
+  text-align: right;
+  white-space: nowrap;
+  will-change: transform, opacity;
+}
+.depth-readout .value {
+  font-family: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: .01em;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 10px rgba(2,20,40,.65);
+}
+.depth-readout .value span {
+  font-size: 0.82em;
+  font-weight: 500;
+  margin-left: 0.15em;
+  opacity: .7;
+}
+.depth-readout .tag {
+  margin-top: .25rem;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .03em;
+  color: #7ce0d0;
+  text-shadow: 0 1px 10px rgba(2,20,40,.65);
+}
+
+/* Captions, bottom-left. */
+.captions {
+  position: absolute;
+  left: clamp(1.25rem, 5vw, 5rem);
+  bottom: clamp(2rem, 8vh, 5rem);
+  width: min(30ch, 70vw);
+}
+.captions p {
+  position: absolute;
+  bottom: 0;
+  margin: 0;
+  font-size: clamp(.95rem, 1.35vw, 1.2rem);
+  line-height: 1.5;
+  color: #d6effc;
+  text-shadow: 0 2px 20px rgba(2,20,40,.6);
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity .5s ease, transform .5s ease;
+}
+.captions p.on { opacity: 1; transform: none; }
+
+/* Scroll hint. */
+.hint {
+  position: absolute;
+  left: 50%;
+  bottom: 2.2rem;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  font-size: .8rem;
+  letter-spacing: .05em;
+  color: #cdeafb;
+  transition: opacity .4s ease;
+}
+.hint i {
+  display: block;
+  width: 1px; height: 26px;
+  background: linear-gradient(#cdeafb, transparent);
+  animation: drop 1.7s ease-in-out infinite;
+}
+@keyframes drop {
+  0%,100% { transform: translateY(-6px); opacity: .2; }
+  50%     { transform: translateY(6px);  opacity: 1; }
+}
+
+/* Marine snow drift. */
+.flake { animation: sink linear infinite; }
+@keyframes sink {
+  from { transform: translateY(-140px); }
+  to   { transform: translateY(1040px); }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   3. ACCESSIBILITY — respect a reduced-motion preference
+   ══════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .flake, .hint i { animation: none !important; }
+  .captions p { transition: none; }
+}
+
+@media (max-width: 700px) {
+  .captions { width: min(26ch, 78vw); }
+}
+</style>
+</head>
+
+<body>
+
+<section class="ocean-track" id="track">
+  <div class="ocean-stage">
+
+    <svg class="ocean-scene" id="scene" viewBox="0 0 1440 900"
+         preserveAspectRatio="xMidYMid slice" aria-label="A sailing vessel on the surface links to a satellite while an Argo float descends to one thousand metres.">
+
+      <defs>
+        <linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0"   stop-color="#8fdcf6"/>
+          <stop offset="1"   stop-color="#31addf"/>
+        </linearGradient>
+
+        <!-- Water colour. JS rewrites these two stops as depth increases. -->
+        <linearGradient id="waterG" x1="0" y1="0" x2="0" y2="1">
+          <stop id="wTop" offset="0"   stop-color="#29b6ef"/>
+          <stop id="wBot" offset="1"   stop-color="#0d74b5"/>
+        </linearGradient>
+
+        <linearGradient id="fadeG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#000814" stop-opacity="0"/>
+          <stop offset="1" stop-color="#000814" stop-opacity="1"/>
+        </linearGradient>
+
+        <!-- Keeps depth marks, light shafts and marine snow underwater. -->
+        <clipPath id="belowWater">
+          <rect id="clipRect" x="0" y="430" width="1440" height="1200"/>
+        </clipPath>
+
+        <radialGradient id="haloG">
+          <stop offset="0"   stop-color="#8fe8ff" stop-opacity=".26"/>
+          <stop offset=".6"  stop-color="#5fc9f0" stop-opacity=".07"/>
+          <stop offset="1"   stop-color="#5fc9f0" stop-opacity="0"/>
+        </radialGradient>
+
+        <radialGradient id="glowG">
+          <stop offset="0"   stop-color="#ffeeb8" stop-opacity=".8"/>
+          <stop offset=".55" stop-color="#ffe08a" stop-opacity=".22"/>
+          <stop offset="1"   stop-color="#ffe08a" stop-opacity="0"/>
+        </radialGradient>
+
+        <linearGradient id="rayG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#d8f6ff" stop-opacity=".20"/>
+          <stop offset="1" stop-color="#d8f6ff" stop-opacity="0"/>
+        </linearGradient>
+
+        <linearGradient id="panelG" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#6ddcf8"/><stop offset="1" stop-color="#1c6fb0"/>
+        </linearGradient>
+
+        <linearGradient id="jibG" x1=".1" y1="0" x2=".9" y2="1">
+          <stop offset="0" stop-color="#eaf7fd" stop-opacity=".62"/>
+          <stop offset="1" stop-color="#bfe4f5" stop-opacity=".42"/>
+        </linearGradient>
+        <linearGradient id="sailA" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#ffffff" stop-opacity=".96"/>
+          <stop offset="1" stop-color="#cbe8f7" stop-opacity=".78"/>
+        </linearGradient>
+        <linearGradient id="sailB" x1=".1" y1="0" x2="1" y2=".9">
+          <stop offset="0" stop-color="#ffffff" stop-opacity=".98"/>
+          <stop offset="1" stop-color="#bfe1f4" stop-opacity=".72"/>
+        </linearGradient>
+
+        <linearGradient id="argoBody" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#f0a91c"/>
+          <stop offset=".45" stop-color="#ffd23f"/>
+          <stop offset="1" stop-color="#e09310"/>
+        </linearGradient>
+        <linearGradient id="argoCap" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#dcedf5"/>
+          <stop offset=".45" stop-color="#ffffff"/>
+          <stop offset="1" stop-color="#bcd7e4"/>
+        </linearGradient>
+      </defs>
+
+      <!-- 1 · sky -->
+      <rect width="1440" height="900" fill="#3fb5e6"/>
+      <rect width="1440" height="900" fill="url(#skyG)" opacity=".9"/>
+      <rect id="skyDim" width="1440" height="900" fill="#03172c" opacity="0"/>
+
+      <!-- 2 · sun / satellite glow -->
+      <circle id="glow" class="anim" cx="0" cy="0" r="230" fill="url(#glowG)"/>
+
+      <!-- 3 · water body (its top edge is the wave line) -->
+      <g id="waterWrap" class="anim">
+        <path id="waterBody" fill="url(#waterG)"
+          d="M -260 0 Q -140 -11 -20 0 T 220 0 T 460 0 T 700 0 T 940 0 T 1180 0 T 1420 0 T 1660 0 L 1700 1500 L -300 1500 Z"/>
+      </g>
+
+      <!-- 4-8 · everything that must never appear above the waterline -->
+      <g clip-path="url(#belowWater)">
+
+      <!-- 4 · light shafts -->
+      <g id="rays" class="anim" opacity="1">
+        <path fill="url(#rayG)" d="M 300 0 L 420 0 L 300 760 L 244 760 Z"/>
+        <path fill="url(#rayG)" d="M 640 0 L 806 0 L 700 820 L 620 820 Z"/>
+        <path fill="url(#rayG)" d="M 1030 0 L 1120 0 L 1010 700 L 962 700 Z"/>
+      </g>
+
+      <!-- 5 · deep darkening -->
+      <rect id="deepFade" x="0" y="300" width="1440" height="600" fill="url(#fadeG)" opacity="0"/>
+
+      <!-- 6 · marine snow (built by JS) -->
+      <g id="snow" opacity="0"></g>
+
+      <!-- 7 · depth ruler -->
+      <g id="ruler" class="anim" opacity="0"></g>
+
+      <!-- 8 · guide line at the float's depth -->
+      <g id="guide" class="anim" opacity="0">
+        <path d="M 0 0 H 1440" stroke="#bfeeff" stroke-opacity=".22" stroke-width="1.5" stroke-dasharray="2 10"/>
+      </g>
+
+      </g><!-- /clip -->
+
+      <!-- 9 · tether -->
+      <path id="wire" fill="none" stroke="#cfeeff" stroke-opacity=".72" stroke-width="2.2" stroke-linecap="round"/>
+
+      <!-- 10 · BOAT -->
+      <g id="boat" class="anim">
+        <g transform="translate(-232,-258)">
+          <g stroke="#dff1fb" stroke-opacity=".5" stroke-width="1.3" fill="none">
+            <path d="M286 38 L 172 70"/><path d="M286 38 L 400 240"/>
+            <path d="M172 70 L 92 240"/><path d="M286 38 L 246 240"/>
+          </g>
+          <path d="M70 240 L 24 231" stroke="#123a5c" stroke-width="6" stroke-linecap="round"/>
+          <path d="M170 70 L 170 238 L 40 238 C 92 220 142 160 170 70 Z" fill="url(#jibG)"/>
+          <path d="M178 84 C 246 132 288 186 286 238 L 178 238 Z" fill="url(#sailA)"/>
+          <path d="M292 44 C 356 106 382 184 374 238 L 292 238 Z" fill="url(#sailB)"/>
+          <rect x="167" y="64" width="6" height="176" rx="3" fill="#123a5c"/>
+          <rect x="283" y="32" width="6" height="208" rx="3" fill="#123a5c"/>
+          <path d="M289 34 L 345 48 L 289 61 Z" fill="#2ec4a6"/>
+          <rect x="206" y="216" width="72" height="19" rx="3" fill="#f4fcff"/>
+          <circle cx="224" cy="225.5" r="3" fill="#123a5c" opacity=".5"/>
+          <circle cx="242" cy="225.5" r="3" fill="#123a5c" opacity=".5"/>
+          <circle cx="260" cy="225.5" r="3" fill="#123a5c" opacity=".5"/>
+          <path d="M60 236 L 404 236 L 398 248 L 66 248 Z" fill="#2ec4a6"/>
+          <path d="M60 246 L 398 246 C 386 278 330 292 252 292 L 168 292 C 100 288 66 272 60 246 Z" fill="#123a5c"/>
+          <circle cx="112" cy="262" r="4.6" fill="#7fd8f0" opacity=".85"/>
+        </g>
+      </g>
+
+      <!-- 11 · wave strokes, drawn over the hull -->
+      <g id="waves" class="anim">
+        <path id="w1" fill="none" stroke="#eaf9ff" stroke-opacity=".9"  stroke-width="4" stroke-linecap="round"
+          d="M -260 0 Q -140 -13 -20 0 T 220 0 T 460 0 T 700 0 T 940 0 T 1180 0 T 1420 0 T 1660 0"/>
+        <path id="w2" fill="none" stroke="#9fe9dd" stroke-opacity=".75" stroke-width="3" stroke-linecap="round"
+          d="M -260 16 Q -140 5 -20 16 T 220 16 T 460 16 T 700 16 T 940 16 T 1180 16 T 1420 16 T 1660 16"/>
+        <path id="w3" fill="none" stroke="#eaf9ff" stroke-opacity=".45" stroke-width="3" stroke-linecap="round"
+          stroke-dasharray="26 20"
+          d="M -260 30 Q -140 22 -20 30 T 220 30 T 460 30 T 700 30 T 940 30 T 1180 30 T 1420 30 T 1660 30"/>
+      </g>
+
+      <!-- 12 · SATELLITE -->
+      <g id="sat" class="anim">
+        <g transform="rotate(-12)">
+          <rect x="-78" y="-18" width="52" height="36" rx="3" fill="url(#panelG)"/>
+          <rect x="26"  y="-18" width="52" height="36" rx="3" fill="url(#panelG)"/>
+          <g stroke="#0a4a7a" stroke-opacity=".45" stroke-width="1.5">
+            <path d="M-61 -18 V18 M-43 -18 V18 M-78 0 H-26"/>
+            <path d="M43 -18 V18 M61 -18 V18 M26 0 H78"/>
+          </g>
+          <rect x="-28" y="-3" width="56" height="6" rx="1" fill="#0f3a5f"/>
+          <rect x="-17" y="-24" width="34" height="46" rx="6" fill="#f4fcff"/>
+          <rect x="-17" y="-8"  width="34" height="9" fill="#2ec4a6"/>
+          <rect x="-1.8" y="-34" width="3.6" height="11" rx="1.8" fill="#0f3a5f"/>
+          <circle cy="-36" r="3.4" fill="#2ec4a6"/>
+          <rect x="-2" y="22" width="4" height="11" fill="#0f3a5f"/>
+          <path d="M-19 33 A 19 15 0 0 0 19 33 Z" fill="#cfe9f7"/>
+          <path d="M-19 33 A 19 15 0 0 0 19 33" fill="none" stroke="#8fc4dd" stroke-width="1.6"/>
+          <circle cy="34" r="3" fill="#0f3a5f"/>
+        </g>
+      </g>
+
+      <!-- 13 · uplink beam + travelling data packets -->
+      <path id="beam" fill="none" stroke="#dff4ff" stroke-opacity=".7"
+            stroke-width="2.4" stroke-dasharray="10 12" stroke-linecap="round"/>
+      <g id="packets">
+        <circle r="4" fill="#eafcff"/><circle r="4" fill="#eafcff"/><circle r="4" fill="#eafcff"/>
+      </g>
+
+      <!-- 14 · ARGO FLOAT -->
+      <g id="argo" class="anim">
+        <circle id="argoHalo" cy="10" r="150" fill="url(#haloG)" opacity="0"/>
+        <g transform="translate(0,-60)">
+          <path d="M0 -34 V 4" stroke="#dff1fb" stroke-width="2" stroke-dasharray="4 4" opacity=".75"/>
+          <circle cy="-36" r="4.5" fill="#f2fbff"/>
+          <rect x="-13" y="4"  width="26" height="14" rx="6" fill="url(#argoCap)"/>
+          <rect x="-15" y="18" width="30" height="7"  rx="3" fill="#2f5f80"/>
+          <rect x="-13" y="25" width="26" height="74" rx="4" fill="url(#argoBody)"/>
+          <rect x="-13" y="52" width="26" height="6" fill="#8a5a10" opacity=".45"/>
+          <rect x="-11" y="99" width="22" height="28" rx="3" fill="#2f5f80"/>
+          <circle cy="131" r="5" fill="#f2fbff"/>
+          <g id="pings" fill="none" stroke="#7fe8ff" stroke-linecap="round" stroke-width="3">
+            <path d="M-20 144 A 26 22 0 0 0 20 144" opacity=".9"/>
+            <path d="M-30 152 A 38 30 0 0 0 30 152" opacity=".6"/>
+            <path d="M-40 160 A 50 38 0 0 0 40 160" opacity=".32"/>
+          </g>
+        </g>
+      </g>
+
+      <!-- 15 · surface marker -->
+      <g id="surfaceTag" class="anim">
+        <path d="M0 0 H 52" stroke="#eaf9ff" stroke-width="3" stroke-linecap="round"/>
+        <text x="66" y="6" fill="#eaf9ff" font-family="Public Sans, sans-serif"
+              font-size="24" font-weight="500" letter-spacing="1">0 m · sea surface</text>
+      </g>
+
+    </svg>
+
+    <!-- overlay -->
+    <div class="ocean-hud">
+      <div class="depth-readout" id="readout" style="opacity:0">
+        <div class="value"><b id="depthNum">0</b><span>m</span></div>
+        <div class="tag" id="depthTag">float descending</div>
+      </div>
+
+      <div class="captions" id="caps">
+        <p data-from="0"   data-to="60">Satellites read the sea surface — its temperature and its height.</p>
+        <p data-from="60"  data-to="220">The mixed layer. Warm, wind-stirred, and the last depth anything can see directly.</p>
+        <p data-from="220" data-to="480">Below the thermocline, satellites are blind. This is what the model has to infer.</p>
+        <p data-from="480" data-to="820">OceanEmbed reconstructs the full temperature profile from surface signals alone.</p>
+        <p data-from="820" data-to="1001">Checked against real Argo floats across the Bay of Bengal and the Arabian Sea.</p>
+      </div>
+
+      <div class="hint" id="hint"><i></i> scroll to descend</div>
+    </div>
+
+  </div>
+</section>
+
+<script>
+(() => {
+"use strict";
+
+/* ══════════════════════════════════════════════════════════════
+   TUNING — every number worth changing lives here.
+   ══════════════════════════════════════════════════════════════ */
+const CFG = {
+  maxDepth:      1000,   // metres at the end of the scroll
+  pxPerMetre:    2.6,    // ruler spacing, in viewBox units
+  restEnd:       0.13,   // p: intro holds until here
+  moveEnd:       0.33,   // p: boat has finished shrinking away
+  ease:          0.115,  // damping. lower = smoother + laggier
+};
+// Horizontal and vertical placement live in FX / FY further down —
+// they're fractions of the visible area, not fixed coordinates.
+
+const $ = id => document.getElementById(id);
+const scene = $('scene'), track = $('track');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ── helpers ─────────────────────────────────────────────────── */
+const clamp = (v, a=0, b=1) => v < a ? a : v > b ? b : v;
+const lerp  = (a, b, t) => a + (b - a) * t;
+// map v from [i0,i1] onto [o0,o1], clamped
+const map   = (v, i0, i1, o0, o1) => lerp(o0, o1, clamp((v - i0) / (i1 - i0)));
+// smoothstep: eases in and out, so nothing starts or stops abruptly
+const ease  = t => (t = clamp(t), t * t * (3 - 2 * t));
+const mapE  = (v, i0, i1, o0, o1) => lerp(o0, o1, ease((v - i0) / (i1 - i0)));
+
+/* ── water colour ramp, keyed to depth ───────────────────────── */
+const RAMP = [
+  {d:0,    top:[ 41,182,239], bot:[ 13,116,181]},
+  {d:120,  top:[ 31,158,222], bot:[ 10, 92,154]},
+  {d:320,  top:[ 15,107,168], bot:[  6, 74,128]},
+  {d:620,  top:[  7, 63,110], bot:[  3, 42, 78]},
+  {d:1000, top:[  4, 34, 61], bot:[  1, 13, 28]},
+];
+function waterAt(d) {
+  let i = 0;
+  while (i < RAMP.length - 2 && d > RAMP[i + 1].d) i++;
+  const a = RAMP[i], b = RAMP[i + 1];
+  const t = clamp((d - a.d) / (b.d - a.d));
+  const mix = k => `rgb(${
+    Math.round(lerp(a[k][0], b[k][0], t))},${
+    Math.round(lerp(a[k][1], b[k][1], t))},${
+    Math.round(lerp(a[k][2], b[k][2], t))})`;
+  return [mix('top'), mix('bot')];
+}
+
+/* ── build the depth ruler once ──────────────────────────────── */
+(function buildRuler() {
+  const g = $('ruler');
+  const NS = 'http://www.w3.org/2000/svg';
+  let markup = '';
+  for (let d = 0; d <= CFG.maxDepth; d += 50) {
+    const y = d * CFG.pxPerMetre;
+    const major = d % 100 === 0;
+    markup += `<path d="M ${major ? 316 : 340} ${y} H 372"
+                 stroke="#cfeeff" stroke-opacity="${major ? .55 : .25}"
+                 stroke-width="${major ? 2.5 : 2}" stroke-linecap="round"/>`;
+    if (major) markup += `<text x="300" y="${y + 6}" text-anchor="end"
+                 fill="#cfeeff" fill-opacity=".72" font-family="Public Sans, sans-serif"
+                 font-size="17" font-weight="500">${d}</text>`;
+  }
+  g.innerHTML = markup;
+})();
+
+/* ── build marine snow once ──────────────────────────────────── */
+(function buildSnow() {
+  const g = $('snow');
+  let markup = '';
+  for (let i = 0; i < 64; i++) {
+    const x  = Math.random() * 1520 - 40;
+    const r  = 1.1 + Math.random() * 2.4;
+    const dur = 16 + Math.random() * 22;
+    const del = -Math.random() * dur;
+    markup += `<circle class="flake" cx="${x.toFixed(1)}" cy="0" r="${r.toFixed(1)}"
+                 fill="#dff3ff" fill-opacity="${(0.18 + Math.random() * 0.42).toFixed(2)}"
+                 style="animation-duration:${dur.toFixed(1)}s;animation-delay:${del.toFixed(1)}s"/>`;
+  }
+  g.innerHTML = markup;
+})();
+
+/* ── cached nodes ────────────────────────────────────────────── */
+const N = {
+  glow:$('glow'), waterWrap:$('waterWrap'), rays:$('rays'), deepFade:$('deepFade'),
+  snow:$('snow'), ruler:$('ruler'), guide:$('guide'), wire:$('wire'),
+  boat:$('boat'), waves:$('waves'), sat:$('sat'), beam:$('beam'),
+  packets:[...$('packets').children], argo:$('argo'), pings:$('pings'),
+  clipRect:$('clipRect'), skyDim:$('skyDim'), argoHalo:$('argoHalo'),
+  surfaceTag:$('surfaceTag'), readout:$('readout'), depthNum:$('depthNum'),
+  depthTag:$('depthTag'), hint:$('hint'),
+  wTop:$('wTop'), wBot:$('wBot'),
+  caps:[...$('caps').children],
+};
+
+/* ── scroll progress: raw target, then a damped follower ─────── */
+let target = 0, cur = 0, last = performance.now();
+
+function readScroll() {
+  const r = track.getBoundingClientRect();
+  const span = r.height - window.innerHeight;
+  target = span > 0 ? clamp(-r.top / span) : 0;
+}
+addEventListener('scroll', readScroll, {passive:true});
+addEventListener('resize', () => { readScroll(); measure(); }, {passive:true});
+
+/* viewBox → screen px for the "slice" fit, plus the slice of the
+   viewBox actually visible. Because "slice" crops the sides on tall
+   screens, fixed x-coordinates would fall off a phone. Everything
+   horizontal is therefore placed as a FRACTION of the visible band. */
+let fit = {s:1, ox:0, oy:0};
+let band = {left:0, w:1440, top:0, h:900};
+
+function measure() {
+  const r = scene.getBoundingClientRect();
+  const s = Math.max(r.width / 1440, r.height / 900);
+  fit  = { s, ox: r.width / 2 - 720 * s, oy: r.height / 2 - 450 * s };
+  const visW = r.width / s, visH = r.height / s;
+  band = { w: visW, left: 720 - visW / 2, h: visH, top: 450 - visH / 2 };
+}
+
+// fraction of the visible band → viewBox coordinate
+const X = f => band.left + f * band.w;
+const Y = f => band.top  + f * band.h;
+
+// Boat and float share the same end x, so the tether hangs straight down.
+const FX = {
+  boatRest: 0.486, boatEnd: 0.900,
+  satRest:  0.181, satEnd:  0.288,
+  floatRest:0.486, floatEnd:0.900,
+  ruler:    0.620, tag:     0.048,
+};
+// vertical placement, as fractions of the visible height
+const FY = { waterRest: 0.48, waterEnd: 0.17, floatRest: 0.62 };
+
+/* ══════════════════════════════════════════════════════════════
+   THE FRAME — every element is a formula of `p`
+   ══════════════════════════════════════════════════════════════ */
+let capIndex = -1;
+
+function draw(p) {
+  const { restEnd:R, moveEnd:M } = CFG;
+
+  /* ---- surface: waterline climbs as we dive -------------- */
+  const waterY = mapE(p, R, M, Y(FY.waterRest), Y(FY.waterEnd));
+
+  /* ---- boat: shrinks and slides to the right ------------- */
+  const narrow = band.w < 760;                 // portrait phone
+  const bs = mapE(p, R, M, narrow ? 0.92 : 1, narrow ? 0.24 : 0.27);
+  const bx = mapE(p, R, M, X(FX.boatRest), X(narrow ? 0.86 : FX.boatEnd));
+  const by = waterY;
+  N.boat.style.transform = `translate(${bx}px,${by}px) scale(${bs})`;
+
+  /* ---- satellite: shrinks, tucks toward upper-left ------- */
+  const ss = mapE(p, R, M, narrow ? 0.75 : 1, narrow ? 0.4 : 0.52);
+  const sx = mapE(p, R, M, X(FX.satRest), X(FX.satEnd));
+  const sy = mapE(p, R, M, Y(0.17), Y(0.065));
+  N.sat.style.transform  = `translate(${sx}px,${sy}px) scale(${ss})`;
+  N.glow.style.transform = `translate(${sx}px,${sy}px) scale(${ss * 1.05})`;
+
+  /* ---- float: descends, then locks; depth keeps climbing - */
+  const fy = mapE(p, R, M, waterY + 130, Y(FY.floatRest));
+  const fx = mapE(p, R, M, X(FX.floatRest), X(narrow ? 0.86 : FX.floatEnd));
+  const fs = mapE(p, R, M, narrow ? 0.70 : 0.78, narrow ? 0.48 : 0.55);
+  N.argo.style.transform = `translate(${fx}px,${fy}px) scale(${fs})`;
+
+  const depth = p <= M
+    ? mapE(p, R, M, 0, 50)
+    : map(p, M, 1, 50, CFG.maxDepth);
+
+  /* ---- water body + waves ------------------------------- */
+  N.waterWrap.style.transform = `translate(0px,${waterY}px)`;
+  N.waves.style.transform     = `translate(0px,${waterY}px)`;
+  N.rays.style.transform      = `translate(0px,${waterY}px)`;
+  N.clipRect.setAttribute('y', waterY.toFixed(1));
+  N.surfaceTag.style.transform= `translate(${X(FX.tag)}px,${(waterY + (narrow ? 54 : -26)).toFixed(1)}px)`;
+  N.surfaceTag.style.opacity  = String(1 - ease((p - R) / (M - R) * 1.4));
+
+  const [ct, cb] = waterAt(depth);
+  N.wTop.setAttribute('stop-color', ct);
+  N.wBot.setAttribute('stop-color', cb);
+
+  /* ---- tether: hangs straight down from the hull ------- */
+  const hx = bx, hy = by + 30 * bs;
+  const tx = fx, ty = fy - 56 * fs;
+  N.wire.setAttribute('d', `M ${hx.toFixed(1)} ${hy.toFixed(1)} L ${tx.toFixed(1)} ${ty.toFixed(1)}`);
+
+  /* ---- ruler + guide line ------------------------------- */
+  N.ruler.style.transform = `translate(${(X(narrow ? 0.34 : FX.ruler) - 300).toFixed(1)}px,${(fy - depth * CFG.pxPerMetre).toFixed(1)}px)`;
+  N.ruler.style.opacity   = String(ease((p - R * 0.6) / 0.18));
+  N.guide.style.transform = `translate(0px,${fy}px)`;
+  N.guide.style.opacity   = String(ease((p - M) / 0.12) * 0.9);
+
+  /* ---- depth cues --------------------------------------- */
+  N.deepFade.setAttribute('opacity',  (clamp(depth / 900) * 0.85).toFixed(3));
+  N.skyDim.setAttribute('opacity',    (clamp(depth / 1000) * 0.42).toFixed(3));
+  N.argoHalo.setAttribute('opacity',  clamp((depth - 120) / 420).toFixed(3));
+  N.rays.setAttribute('opacity',     (1 - clamp(depth / 260)).toFixed(3));
+  N.snow.setAttribute('opacity',     clamp((depth - 140) / 220).toFixed(3));
+  N.pings.setAttribute('opacity',    (0.35 + 0.65 * Math.abs(Math.sin(performance.now() / 900))).toFixed(3));
+
+  /* ---- uplink beam -------------------------------------- */
+  const mastX = bx + 51 * bs, mastY = by - 226 * bs;
+  N.beam.setAttribute('d', `M ${sx.toFixed(1)} ${(sy + 36 * ss).toFixed(1)} L ${mastX.toFixed(1)} ${mastY.toFixed(1)}`);
+  if (!reduce) {
+    N.beam.style.strokeDashoffset = String(-(performance.now() / 26) % 22);
+    const len = N.beam.getTotalLength();
+    N.packets.forEach((c, i) => {
+      const t = ((performance.now() / 2600) + i / 3) % 1;
+      const pt = N.beam.getPointAtLength(len * t);
+      c.setAttribute('cx', pt.x); c.setAttribute('cy', pt.y);
+      c.setAttribute('opacity', (Math.sin(t * Math.PI) * 0.95).toFixed(2));
+    });
+  }
+
+  /* ---- HUD ---------------------------------------------- */
+  const shown = Math.round(depth / 5) * 5;
+  N.depthNum.textContent = shown;
+  N.depthTag.textContent = shown >= CFG.maxDepth ? 'profile complete'
+                        : shown < 10            ? 'at the surface'
+                        : 'float descending';
+  N.readout.style.opacity = String(ease((p - R) / 0.14));
+  N.readout.style.left = (fit.ox + (fx - 26) * fit.s) + 'px';
+  N.readout.style.top  = (fit.oy + fy * fit.s) + 'px';
+
+  N.hint.style.opacity = String(1 - clamp(p / 0.05));
+
+  let idx = N.caps.findIndex(c => depth >= +c.dataset.from && depth < +c.dataset.to);
+  if (idx !== capIndex) {
+    N.caps.forEach((c, i) => c.classList.toggle('on', i === idx));
+    capIndex = idx;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LOOP — damped follow makes the scrub feel weighted, not twitchy.
+   The pow() keeps the feel identical at 60 Hz and 144 Hz.
+   ══════════════════════════════════════════════════════════════ */
+function tick(now) {
+  const dt = Math.min(now - last, 50); last = now;
+  const k = reduce ? 1 : 1 - Math.pow(1 - CFG.ease, dt / 16.667);
+  cur += (target - cur) * k;
+  if (Math.abs(target - cur) < 0.00005) cur = target;
+  draw(cur);
+  requestAnimationFrame(tick);
+}
+
+measure(); readScroll(); cur = target; draw(cur);
+requestAnimationFrame(tick);
+})();
+</script>
+
+</body>
+</html>

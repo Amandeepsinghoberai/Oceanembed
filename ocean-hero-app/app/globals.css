@@ -1,0 +1,29 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+/*
+ * IMPORTANT — read before touching this file.
+ *
+ * OceanHero relies on `position: sticky` inside its own markup. Sticky
+ * silently stops working (degrades to `position: static`, no error) if
+ * ANY ancestor of it — html, body, or a wrapper div — has:
+ *
+ *   overflow: hidden;
+ *   overflow-x: hidden;
+ *   overflow: auto;
+ *
+ * Do NOT add any of those here to "fix" a horizontal scrollbar. If one
+ * ever shows up, use `overflow-x: clip` instead — it suppresses the
+ * scrollbar without breaking sticky descendants.
+ *
+ * See INTEGRATION.md, Step 4, for the full explanation.
+ */
