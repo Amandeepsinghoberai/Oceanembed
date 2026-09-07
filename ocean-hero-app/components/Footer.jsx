@@ -58,7 +58,7 @@ export default function Footer() {
 
       <style>{`
         .ocean-footer {
-          background-color: #01070e;
+          background-color: #956039;
           padding: 8rem 5% 4rem;
           font-family: inherit;
           z-index: 50;

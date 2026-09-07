@@ -108,28 +108,62 @@ const MARKUP = `
           <stop offset="100%" stop-color="#ffeba1" stop-opacity="0"/>
         </radialGradient>
         <symbol id="school1" overflow="visible">
-          <path d="M0,0 Q10,-5 20,0 Q10,5 0,0Z M5,-2 L10,0 L10,-4Z M15,-10 Q25,-15 35,-10 Q25,-5 15,-10Z M20,-12 L25,-10 L25,-14Z M30,10 Q40,5 50,10 Q40,15 30,10Z M35,8 L40,10 L40,6Z M55,-5 Q65,-10 75,-5 Q65,0 55,-5Z M60,-7 L65,-5 L65,-9Z M-20,15 Q-10,10 0,15 Q-10,20 -20,15Z M-15,13 L-10,15 L-10,11Z" fill="currentColor"/>
+          <!-- Small sleek fish -->
+          <path d="M0,0 Q12,-6 24,0 Q12,6 0,0Z M4,-1 L8,0 L8,-3Z M25,0 L32,3 L32,-3Z" fill="currentColor"/>
+          <path d="M12,-3 Q18,0 12,3" fill="none" stroke="#aee6f5" stroke-width="0.5" opacity="0.6"/>
+          <!-- offset fish in school -->
+          <path d="M-15,10 Q-3,4 9,10 Q-3,16 -15,10Z M-11,9 L-7,10 L-7,7Z M9,10 L16,13 L16,7Z" fill="currentColor"/>
+          <path d="M20,15 Q32,9 44,15 Q32,21 20,15Z M24,14 L28,15 L28,12Z M44,15 L51,18 L51,12Z" fill="currentColor"/>
+          <path d="M-5,-12 Q7,-18 19,-12 Q7,-6 -5,-12Z M-1,-13 L3,-12 L3,-15Z M19,-12 L26,-9 L26,-15Z" fill="currentColor"/>
         </symbol>
         <symbol id="school2" overflow="visible">
-          <path d="M0,0 Q10,-3 15,0 Q10,3 0,0Z M3,-1 L8,0 L8,-2Z M30,-15 Q40,-18 45,-15 Q40,-12 30,-15Z M33,-16 L38,-15 L38,-17Z M-15,-25 Q-5,-28 0,-25 Q-5,-22 -15,-25Z M-12,-26 L-7,-25 L-7,-27Z M40,20 Q50,17 55,20 Q50,23 40,20Z M43,19 L48,20 L48,18Z" fill="currentColor"/>
+          <!-- Tighter school -->
+          <path d="M0,0 Q8,-3 16,0 Q8,3 0,0Z M16,0 L21,2 L21,-2Z" fill="currentColor"/>
+          <path d="M-5,-10 Q3,-13 11,-10 Q3,-7 -5,-10Z M11,-10 L16,-8 L16,-12Z" fill="currentColor"/>
+          <path d="M15,8 Q23,5 31,8 Q23,11 15,8Z M31,8 L36,10 L36,6Z" fill="currentColor"/>
+          <path d="M-15,6 Q-7,3 1,6 Q-7,9 -15,6Z M1,6 L6,8 L6,4Z" fill="currentColor"/>
         </symbol>
         <symbol id="ray" overflow="visible">
-          <path d="M0,0 C30,-30 60,-30 90,0 C60,10 30,10 0,0Z M15,0 C30,-40 60,-40 75,0 C60,5 30,5 15,0Z M90,0 L130,10 L130,6 Z" fill="currentColor"/>
+          <!-- Stylized manta ray with graceful wings -->
+          <path d="M0,0 C25,-15 45,-25 70,-10 C90,-35 70,5 50,20 C30,35 15,30 0,0 Z" fill="currentColor"/>
+          <path d="M0,0 C25,15 45,25 70,10 C90,35 70,-5 50,-20 C30,-35 15,-30 0,0 Z" fill="currentColor"/>
+          <path d="M70,-10 L75,0 L70,10 Z" fill="currentColor"/>
+          <path d="M10,0 C30,-5 50,0 60,0" fill="none" stroke="#71a9cf" stroke-width="1.5" opacity="0.6"/>
         </symbol>
         <symbol id="turtle" overflow="visible">
           <path d="M20,0 C30,-15 50,-15 60,0 C50,10 30,10 20,0Z M60,-2 C70,-5 75,0 60,2 Z M30,-4 C50,-20 40,10 30,-4Z M50,-4 C55,-15 45,5 50,-4Z" fill="currentColor"/>
         </symbol>
         <symbol id="jellyfish" overflow="visible">
-          <path d="M0,0 C0,-30 40,-30 40,0 Z" fill="currentColor" opacity="0.75"/>
-          <path d="M10,0 Q15,20 10,40 M20,0 Q25,25 15,45 M30,0 Q35,30 25,50 M5,0 Q-5,20 5,35 M35,0 Q45,20 35,35" stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.45"/>
+          <!-- Layered glowing jellyfish -->
+          <path d="M0,0 C-5,-20 15,-30 25,-30 C35,-30 55,-20 50,0 Z" fill="currentColor" opacity="0.8"/>
+          <path d="M5,0 Q25,-15 45,0 Z" fill="#bcf1ff" opacity="0.4"/>
+          <!-- Flowing tentacles -->
+          <g stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.6">
+            <path d="M10,0 Q5,20 15,40 T10,70" />
+            <path d="M20,0 Q30,25 20,45 T25,75" stroke-width="2"/>
+            <path d="M30,0 Q25,30 35,50 T30,80" />
+            <path d="M40,0 Q45,20 35,35 T40,65" />
+          </g>
         </symbol>
         <symbol id="squid" overflow="visible">
-          <path d="M0,0 L20,-10 L40,0 L20,30 Z M25,0 Q30,40 10,60 M20,5 Q10,30 30,50 M15,0 Q0,40 20,50 M30,5 Q40,30 20,50 M35,0 Q50,40 30,60" fill="none" stroke="currentColor" stroke-width="2"/>
-          <path d="M0,0 L20,-10 L40,0 L20,30 Z" fill="currentColor"/>
+          <!-- Elegant vector octopus/squid -->
+          <path d="M15,-20 C0,-35 40,-35 25,-20 C40,0 35,10 20,15 C5,10 0,0 15,-20 Z" fill="currentColor"/>
+          <g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <path d="M10,5 Q-5,25 5,45 T-5,70"/>
+            <path d="M15,10 Q5,30 20,50 T15,75"/>
+            <path d="M25,10 Q35,30 20,50 T30,80"/>
+            <path d="M30,5 Q45,25 35,45 T45,70"/>
+          </g>
+          <circle cx="12" cy="-15" r="1.5" fill="#aee6f5" opacity="0.8"/>
+          <circle cx="28" cy="-15" r="1.5" fill="#aee6f5" opacity="0.8"/>
         </symbol>
         <symbol id="deepfish" overflow="visible">
-          <path d="M0,0 C10,-10 30,-5 40,0 C30,10 10,10 0,0Z M35,0 L45,5 L45,-5Z M10,-7 L15,-15 L20,-3Z M20,-3 C25,-15 35,-15 30,-2Z" fill="currentColor"/>
-          <circle cx="5" cy="-2" r="1.5" fill="#7ce0d0"/>
+          <!-- Stylized deep sea fish -->
+          <path d="M0,0 C15,-15 35,-10 45,0 C35,10 15,15 0,0 Z M45,0 L55,8 L52,-6 Z" fill="currentColor"/>
+          <path d="M10,-10 C20,-15 30,-5 20,-2 Z M25,5 C35,10 40,5 35,0 Z" fill="currentColor"/>
+          <!-- Glowing lure -->
+          <path d="M10,-10 Q0,-25 -10,-15" fill="none" stroke="#7ce0d0" stroke-width="1.5"/>
+          <circle cx="-10" cy="-15" r="3" fill="#bef7ed"/>
         </symbol>
       </defs>
 
@@ -201,56 +235,68 @@ const MARKUP = `
 
       <!-- 13.1 · MARINE ECOSYSTEM -->
       <g id="marineFish" class="anim">
-        <g class="marine-moving-slow" opacity="0.65" fill="#71a9cf">
-          <path d="M400,0 C410,-4 425,0 435,2 C425,4 410,6 400,0 Z M432,2 L440,0 L440,4 Z"/>
-          <path d="M430,12 C440,8 455,12 465,14 C455,16 440,18 430,12 Z M462,14 L470,12 L470,16 Z"/>
-          <path d="M370,-15 C380,-19 395,-15 405,-13 C395,-11 380,-9 370,-15 Z M402,-13 L410,-15 L410,-11 Z"/>
-          <path d="M410,-28 C420,-32 435,-28 445,-26 C435,-24 420,-22 410,-28 Z M442,-26 L450,-28 L450,-24 Z"/>
-          <path d="M450,-8 C460,-12 475,-8 485,-6 C475,-4 460,-2 450,-8 Z M482,-6 L490,-8 L490,-4 Z"/>
+        <g class="marine-moving-slow" opacity="0.8" fill="#71a9cf">
+          <use href="#school1" x="380" y="-20" transform="scale(0.8)"/>
+          <use href="#school2" x="430" y="5" transform="scale(0.6)"/>
+          <use href="#school1" x="250" y="20" transform="scale(0.7)"/>
         </g>
       </g>
-      <g id="marineShark" class="anim" opacity="0.8">
+      <g id="marineShark" class="anim" opacity="0.85">
         <g class="marine-swimming">
-          <path d="M600,0 C630,-15 720,0 750,-10 C760,0 750,15 720,5 C690,15 630,15 600,0 Z" fill="#144a6b"/>
-          <path d="M660,-5 C670,-20 680,-25 680,-4 C675,-3 660,-5 660,-5 Z" fill="#144a6b"/>
+          <!-- Sleek, stylized shark -->
+          <path d="M600,0 C630,-10 680,0 720,-10 C740,-15 760,-5 720,5 C680,15 630,10 600,0 Z" fill="#1b587d"/>
+          <path d="M600,0 C630,5 680,15 720,5 C700,5 650,2 600,0 Z" fill="#0f344e"/>
+          <!-- Dorsal fin -->
+          <path d="M660,-5 C670,-20 680,-25 680,-4 C675,-3 660,-5 660,-5 Z" fill="#1b587d"/>
+          <!-- Pectoral fin -->
           <path d="M670,3 C660,18 640,25 650,5 Z" fill="#09293e"/>
-          <path d="M740,-8 C750,-20 760,-30 760,-5 C760,15 755,25 745,5 Z" fill="#144a6b"/>
+          <path d="M610,-2 C640,-10 680,-2 710,-7" fill="none" stroke="#71a9cf" stroke-width="1.5" opacity="0.6"/>
+          <!-- Small accompanying remoras -->
+          <use href="#school2" x="650" y="8" transform="scale(0.3)" fill="#71a9cf"/>
         </g>
       </g>
-      <g id="marineWhale" class="anim" opacity="0.8">
+      <g id="marineWhale" class="anim" opacity="0.9">
         <g class="marine-swimming-slow" fill="#0d3152">
           <!-- Distant Whale Silhouette -->
           <g transform="translate(600, -100) scale(0.6)" opacity="0.4">
             <path d="M1000,0 C1100,-80 1300,-20 1400,0 C1450,5 1450,20 1400,10 C1200,40 1100,60 1000,0 Z" fill="#0a223a"/>
             <path d="M1400,5 C1440,-10 1470,-30 1460,10 C1480,30 1460,50 1430,10 Z" fill="#0a223a"/>
           </g>
-          <!-- Main Whale -->
+          <!-- Main Whale Redesigned (Elegant Vector Silhouette) -->
           <g transform="translate(0, 40)">
-            <path d="M1000,0 C1100,-80 1300,-20 1400,0 C1450,5 1450,20 1400,10 C1200,40 1100,60 1000,0 Z" fill="#0d3152"/>
-            <path d="M1100,-35 C1150,-50 1250,-20 1300,5 C1200,30 1100,40 1100,-35 Z" fill="#1b476e" opacity="0.3"/>
-            <path d="M1400,5 C1440,-10 1470,-30 1460,10 C1480,30 1460,50 1430,10 Z" fill="#0d3152"/>
-            <path d="M1120,5 C1100,50 1030,100 1050,60 C1070,40 1100,10 1120,5 Z" fill="#071b2e"/>
+            <!-- Main Body -->
+            <path d="M1000,0 C1100,-80 1300,-20 1400,0 C1450,5 1450,15 1400,10 C1200,35 1100,40 1000,0 Z" fill="#0d3152"/>
+            <!-- Ventral pleats styling -->
+            <path d="M1050,15 C1150,45 1250,25 1300,5 C1200,30 1100,25 1050,15 Z" fill="#1b476e" opacity="0.4"/>
+            <!-- Subtle contour overlay -->
+            <path d="M1020,-10 C1150,-70 1280,-10 1380,-2" fill="none" stroke="#71a9cf" stroke-width="2" opacity="0.6"/>
+            <!-- Tail -->
+            <path d="M1400,5 C1440,-15 1470,-35 1470,0 C1485,35 1455,45 1430,10 Z" fill="#0d3152"/>
+            <!-- Pectoral Fin -->
+            <path d="M1120,10 C1100,60 1030,110 1070,60 C1090,35 1110,15 1120,10 Z" fill="#071b2e"/>
           </g>
-          <use href="#squid" x="1800" y="160" transform="scale(0.8)" opacity="0.7"/>
-          <use href="#squid" x="1950" y="210" transform="scale(0.6)" opacity="0.5"/>
+          <!-- Replace squid with ray -->
+          <use href="#ray" x="1800" y="160" transform="scale(0.8)" opacity="0.75" fill="#144a6b"/>
+          <use href="#ray" x="1650" y="210" transform="scale(0.6)" opacity="0.6" fill="#144a6b"/>
         </g>
-        <g class="marine-swimming" fill="#0a223a" opacity="0.5">
-          <use href="#school1" x="1400" y="120" transform="scale(0.8)"/>
-          <use href="#school2" x="1700" y="240" transform="scale(1.2)" opacity="0.6"/>
+        <g class="marine-swimming" fill="#0c3c5e" opacity="0.65">
+          <use href="#school1" x="1400" y="120" transform="scale(1.2)"/>
+          <use href="#school2" x="1700" y="240" transform="scale(1.5)" opacity="0.8"/>
         </g>
-        <g class="marine-moving-slow" fill="#071b2e" opacity="0.3">
-          <use href="#school2" x="300" y="90" transform="scale(0.5)"/>
-          <use href="#school1" x="800" y="220" transform="scale(0.4)"/>
+        <g class="marine-moving-slow" fill="#0a2e47" opacity="0.5">
+          <use href="#school2" x="300" y="90" transform="scale(0.8)"/>
+          <use href="#school1" x="800" y="220" transform="scale(0.6)"/>
         </g>
       </g>
       <g id="marineOcto" class="anim" opacity="0.85">
         <g class="marine-bobbing" transform="translate(500,40)">
-          <path d="M40,0 C10,-20 10,-80 40,-90 C70,-80 70,-20 40,0 Z" fill="#0c375e"/>
-          <g fill="none" stroke="#0c375e" stroke-width="8" stroke-linecap="round" class="tentacles-sway">
-            <path d="M25,-5 C10,30 0,60 15,90" />
-            <path d="M35,-2 C20,35 25,75 35,100" />
-            <path d="M45,-2 C60,40 55,80 45,110" />
-            <path d="M55,-5 C70,30 80,60 65,90" />
+          <!-- Elegantly styled vector octopus -->
+          <use href="#squid" x="0" y="-80" transform="scale(1.2)" fill="#1c557a"/>
+          <g fill="none" stroke="#256b96" stroke-width="8" stroke-linecap="round" class="tentacles-sway">
+            <path d="M25,-25 C10,10 0,40 15,70" />
+            <path d="M35,-22 C20,15 25,55 35,80" />
+            <path d="M45,-22 C60,20 55,60 45,90" />
+            <path d="M55,-25 C70,10 80,40 65,70" />
           </g>
         </g>
         <g class="jelly-float-1" fill="#144a6b">
@@ -278,48 +324,103 @@ const MARKUP = `
           <use href="#school1" x="900" y="520" transform="scale(0.4)"/>
         </g>
 
-        <path d="M-100,500 Q 200,420 700,520 T 1500,480 L 1500,900 L -100,900 Z" fill="#010f1c"/>
-        <path d="M-100,560 Q 500,620 900,550 T 1500,580 L 1500,900 L -100,900 Z" fill="#00070f"/>
+        <!-- Warm Sandy Seabed -->
+        <path d="M-100,500 Q 200,420 700,520 T 1500,480 L 1500,900 L -100,900 Z" fill="#b57a45"/>
+        <path d="M-100,560 Q 500,620 900,550 T 1500,580 L 1500,900 L -100,900 Z" fill="#a46938"/>
         
-        <!-- Far back rocks + coral nodes -->
-        <g fill="#021729">
-          <path d="M 400,530 Q 420,480 480,540 Q 500,580 430,600 Z"/>
-          <path d="M 980,510 Q 1020,440 1080,520 Q 1060,560 990,570 Z"/>
+        <!-- Geological depths / hills -->
+        <path d="M 120,530 Q 150,420 220,530 Q 250,560 200,620 Z" fill="#9c5f2b"/>
+        <path d="M 80,590 Q 150,500 280,580 L 80,680 Z" fill="#8d5627"/>
+        <path d="M 1150,540 Q 1200,460 1280,520 Q 1330,560 1200,610 Z" fill="#9c5f2b"/>
+        <path d="M 1250,570 Q 1350,480 1450,580 L 1200,680 Z" fill="#885224"/>
+        
+        <!-- Deeper Soil (seamless footer match) -->
+        <path d="M-100,630 Q 300,590 800,650 T 1500,600 L 1500,900 L -100,900 Z" fill="#956039"/>
+
+        <!-- Distant Background Rocks -->
+        <g fill="#8f5728" opacity="0.65">
+          <path d="M 400,530 Q 420,480 470,540 Q 520,530 550,580 L 400,600 Z"/>
+          <path d="M 920,510 Q 980,420 1050,480 Q 1120,490 1080,560 L 920,550 Z"/>
         </g>
 
-        <path d="M 120,530 Q 150,420 220,530 Q 250,560 200,620 Z" fill="#03182b"/>
-        <path d="M 80,590 Q 150,500 280,580 L 80,680 Z" fill="#010d18"/>
-        <path d="M 1150,540 Q 1200,460 1280,520 Q 1330,560 1200,610 Z" fill="#021424"/>
-        <path d="M 1250,570 Q 1350,480 1450,580 L 1200,680 Z" fill="#000810"/>
-        
-        <!-- Coral & Anemone shapes -->
-        <g stroke="#093a52" stroke-width="4" fill="none" stroke-linecap="round" class="tentacles-sway">
-          <path d="M420,570 Q410,540 400,520" />
-          <path d="M430,580 Q435,530 440,500" />
-          <path d="M440,570 Q460,540 470,510" />
-          <path d="M1020,550 Q1010,510 990,480" />
-          <path d="M1035,540 Q1040,490 1050,460" />
-          <path d="M1050,550 Q1070,510 1090,470" />
+        <!-- Midground Rocks (Layered) -->
+        <g>
+          <path d="M 380,540 C 410,480 480,520 460,560 C 450,570 410,580 380,540 Z" fill="#7a461f"/>
+          <path d="M 410,520 C 430,490 460,510 445,540 Z" fill="#8d5627"/>
+          <path d="M 1000,530 C 1040,490 1100,520 1080,570 C 1060,590 1010,580 1000,530 Z" fill="#72411e"/>
+          <path d="M 1030,510 C 1050,480 1080,510 1065,540 Z" fill="#8f5728"/>
         </g>
 
-        <!-- Swaying Kelp -->
-        <g class="kelp-sway" stroke="#0b3845" stroke-width="4" fill="none" stroke-linecap="round">
-          <path d="M220,570 Q210,500 230,420 Q240,350 220,280"/>
-          <path d="M240,580 Q260,500 230,420 Q210,360 250,290"/>
-          <path d="M190,600 Q170,550 190,480 Q180,410 200,340"/>
-          <path d="M1210,610 Q1180,540 1200,470 Q1190,400 1230,320"/>
+        <!-- Foreground Detailed Rocks & Coral Clusters -->
+        <g class="marine-sway" style="transform-origin: bottom; animation: gentle-sway 10s ease-in-out infinite;">
+          <!-- Branching Coral Left -->
+          <g stroke="#c9745b" stroke-width="4" fill="none" stroke-linecap="round" style="transform-origin: 430px 580px; animation: gentle-sway 8s infinite -2s;">
+            <path d="M420,580 Q400,540 385,520" />
+            <path d="M420,580 Q435,530 445,495" />
+            <path d="M430,550 Q460,530 475,510" />
+            <path d="M410,540 Q390,510 380,490" stroke-width="3"/>
+          </g>
+          <!-- Tube Coral Right -->
+          <g fill="#935757">
+            <path d="M1010,560 C1015,530 1025,510 1020,510 C1015,510 1005,530 1000,560 Z"/>
+            <path d="M1025,570 C1035,520 1045,490 1035,490 C1025,490 1015,520 1015,570 Z"/>
+            <path d="M1040,560 C1055,530 1065,510 1055,510 C1045,510 1030,530 1030,560 Z"/>
+          </g>
         </g>
-        <g class="kelp-sway-alt" stroke="#072b38" stroke-width="5" fill="none" stroke-linecap="round">
-          <path d="M1250,560 Q1240,480 1270,410 Q1260,340 1280,270"/>
-          <path d="M1290,570 Q1320,490 1290,410 Q1270,350 1310,260"/>
-          <path d="M1220,600 Q1200,540 1230,470 Q1220,400 1250,330"/>
-          <path d="M270,610 Q300,540 280,460 Q300,390 270,310"/>
+
+        <!-- Complex Seaweed & Kelp (Left Cluster) -->
+        <g stroke-linecap="round" fill="none" style="transform-origin: 220px 600px; animation: kelp-drift 14s ease-in-out infinite;">
+          <g stroke="#1a3c28" stroke-width="6" style="animation: gentle-sway 11s infinite -5s; transform-origin: 220px 600px;">
+            <path d="M220,590 Q200,480 240,400 Q260,320 220,240"/>
+            <path d="M230,580 Q260,490 230,410 Q210,340 250,260"/>
+          </g>
+          <g stroke="#2a523b" stroke-width="4" style="animation: gentle-sway 9s infinite -2s; transform-origin: 220px 600px;">
+            <path d="M210,600 Q170,520 200,430 Q220,350 190,260"/>
+            <path d="M240,610 Q280,540 250,450 Q230,370 270,280"/>
+            <path d="M200,590 Q150,540 170,470" stroke-width="3"/>
+          </g>
+        </g>
+
+        <!-- Complex Seaweed & Kelp (Right Cluster) -->
+        <g stroke-linecap="round" fill="none" style="transform-origin: 1250px 600px; animation: kelp-drift 12s ease-in-out infinite -4s;">
+          <g stroke="#1b422a" stroke-width="7" style="animation: gentle-sway 13s infinite -1s; transform-origin: 1250px 600px;">
+            <path d="M1250,580 Q1220,490 1280,400 Q1310,300 1260,200"/>
+            <path d="M1280,590 Q1330,500 1280,410 Q1240,320 1300,220"/>
+          </g>
+          <g stroke="#3a664e" stroke-width="4" style="animation: gentle-sway 10s infinite -6s; transform-origin: 1250px 600px;">
+            <path d="M1230,600 Q1190,520 1220,440 Q1240,350 1190,250"/>
+            <path d="M1260,610 Q1310,540 1270,450 Q1240,360 1280,260"/>
+            <path d="M1290,570 Q1360,500 1320,410" stroke-width="3"/>
+          </g>
+        </g>
+
+        <!-- Subtle Fauna (Starfish, Crab, Urchins) -->
+        <g>
+          <!-- Starfish on left sand -->
+          <path d="M 320,530 L 322,525 L 327,526 L 324,530 L 326,535 L 320,533 L 314,535 L 316,530 L 313,526 L 318,525 Z" fill="#b05844"/>
+          <!-- Starfish on right rock -->
+          <path d="M 1040,540 L 1043,534 L 1050,536 L 1045,541 L 1047,547 L 1040,544 L 1033,547 L 1035,541 L 1030,536 L 1037,534 Z" fill="#c46a56" transform="rotate(20 1040 540) scale(0.8)"/>
+          
+          <!-- Small Crab Silhouette -->
+          <g fill="#5a3124" transform="translate(680, 560)">
+            <ellipse cx="0" cy="0" rx="6" ry="4"/>
+            <path d="M-6,0 Q-10,-4 -12,2 M6,0 Q10,-4 12,2" stroke="#5a3124" stroke-width="1.5" fill="none"/>
+            <path d="M-4,4 Q-6,8 -8,6 M4,4 Q6,8 8,6" stroke="#5a3124" stroke-width="1.5" fill="none"/>
+          </g>
+
+          <!-- Shadowy Sea Urchins -->
+          <circle cx="480" cy="570" r="4" fill="#2d1c1c"/>
+          <circle cx="484" cy="573" r="3" fill="#2d1c1c"/>
+          <circle cx="476" cy="574" r="3" fill="#2d1c1c"/>
+          <circle cx="980" cy="580" r="5" fill="#362222"/>
+          <circle cx="973" cy="582" r="3" fill="#362222"/>
         </g>
 
         <!-- Foreground Bed Wildlife -->
         <g class="marine-swimming-slow" fill="#09293e">
            <use href="#school1" x="1400" y="520" transform="scale(0.8)"/>
-           <use href="#ray" x="1700" y="580" transform="scale(0.6)" opacity="0.7"/>
+           <!-- Use ray/manta -->
+           <use href="#ray" x="1700" y="580" transform="scale(0.4)" opacity="0.6"/>
         </g>
 
         <g class="bed-bubbles" fill="#ffffff" opacity="0.15">
@@ -466,16 +567,16 @@ const MARKUP = `
           </button>
           <nav aria-label="Primary navigation">
             <button data-depth="0">PLATFORM</button>
-            <button data-depth="240">SOLUTION</button>
-            <button data-depth="500">TECHNOLOGY</button>
+            <button data-depth="440">SOLUTION</button>
+            <button data-depth="520">TECHNOLOGY</button>
             <button data-depth="680">DATA</button>
-            <button data-depth="860">IMPACT</button>
+            <button data-depth="920">IMPACT</button>
           </nav>
           <div class="nav-depth"><span></span><b>000m</b></div>
         </header>
 
         <div class="story-copy">
-          <article class="story-panel story-hero on" data-from="0" data-to="200">
+          <article class="story-panel story-hero on" data-from="0" data-to="120">
             <span class="eyebrow">OCEAN DATA PLATFORM · SIH 2026</span>
             <h1 id="heroH1">
               <span id="titleOcean" style="display:inline-block; transform-origin: left top;">OCEAN</span><br/>
@@ -485,71 +586,117 @@ const MARKUP = `
             <div class="scroll-cue"><i></i> SCROLL TO EXPLORE</div>
           </article>
 
-          <article class="story-panel problem-panel" data-from="200" data-to="400">
-            <span class="eyebrow">THE PROBLEM · 200—400m</span>
-            <h2>THE OCEAN<br><em>IS VAST.</em></h2>
+          <article class="story-panel problem-panel" data-from="120" data-to="200">
+            <span class="eyebrow">THE PROBLEM</span>
+            <h2>THE OCEAN IS MORE<br><em>THAN ITS SURFACE.</em></h2>
             <div class="problem-stack">
-              <p>Observing it continuously is complex.</p>
-              <p>Information can be spatially sparse and distributed across different sources.</p>
-              <p class="accent">The challenge is not simply data.<br><strong>It is turning data into understanding.</strong></p>
+              <p>Satellites continuously observe the ocean surface and provide valuable information about large-scale physical conditions.</p>
+              <p class="accent"><strong>But the surface does not tell the whole story.</strong></p>
             </div>
           </article>
 
-          <article class="story-panel solution-panel" data-from="400" data-to="600">
-            <span class="eyebrow">THE SOLUTION · 400—600m</span>
-            <h2>FROM<br><em>DATA → INSIGHT</em></h2>
-            <div class="pipeline" aria-label="OceanEmbed data workflow">
-              <span data-node="observations">OBSERVATIONS</span>
-              <i></i><span data-node="sources">DATA SOURCES</span>
-              <i></i><span data-node="integration">INTEGRATION</span>
-              <i></i><span data-node="analysis">PROCESSING / ANALYSIS</span>
-              <i></i><span data-node="visualization">VISUALIZATION</span>
-              <i></i><span data-node="insight">UNDERSTANDING / INSIGHT</span>
+          <article class="story-panel problem-panel" data-from="200" data-to="280">
+            <span class="eyebrow">BENEATH THE SURFACE</span>
+            <h2>WHAT LIES BELOW<br><em>REMAINS HIDDEN.</em></h2>
+            <div class="problem-stack">
+              <p>Subsurface temperature reveals how heat is distributed through the water column and helps us understand the changing state of the ocean.</p>
+              <p class="accent"><strong>Yet direct measurements become increasingly sparse with depth.</strong></p>
             </div>
           </article>
 
-          <article class="story-panel data-panel" data-from="600" data-to="800">
-            <span class="eyebrow">DATA LAYER · 600—800m</span>
-            <h2>THE OCEAN<br><em>HAS SIGNALS.</em></h2>
-            <div class="data-grid">
-              <button class="info-card" data-focus="argo">
-                <small>01 · OBSERVATION</small>
-                <strong>ARGO</strong>
-                <span>Autonomous floats provide observations through the ocean interior. In this journey, ARGO anchors the idea of observing conditions across depth.</span>
-                <b>EXPLORE ↗</b>
-              </button>
-              <button class="info-card" data-focus="glorys">
-                <small>02 · DATA / REANALYSIS</small>
-                <strong>GLORYS</strong>
-                <span>Relevant ocean data and reanalysis can provide broader context alongside observations, where used by the project.</span>
-                <b>EXPLORE ↗</b>
-              </button>
-              <button class="info-card" data-focus="data">
-                <small>03 · INTEGRATION</small>
-                <strong>DATA</strong>
-                <span>OceanEmbed brings relevant information into a workflow designed for clearer exploration and interpretation.</span>
-                <b>EXPLORE ↗</b>
-              </button>
+          <article class="story-panel problem-panel" data-from="280" data-to="360">
+            <span class="eyebrow">THE DATA GAP</span>
+            <h2>SURFACE DATA IS ABUNDANT.<br><em>DEPTH DATA IS NOT.</em></h2>
+            <div class="problem-stack">
+              <p>Satellites provide broad and continuous observations at the surface, while subsurface observations depend on instruments and measurements distributed across the ocean.</p>
+              <p class="accent"><strong>The result is an uneven picture of what is happening beneath the surface.</strong></p>
             </div>
           </article>
 
-          <article class="story-panel impact-panel" data-from="800" data-to="995">
-            <span class="eyebrow">IMPACT · 800—1000m</span>
-            <h2>MAKE THE<br><em>INVISIBLE VISIBLE.</em></h2>
-            <div class="impact-flow">
-              <span>COMPLEX OCEAN DATA</span><i>↓</i>
-              <span>ORGANIZED INFORMATION</span><i>↓</i>
-              <span>VISUAL UNDERSTANDING</span><i>↓</i>
-              <span class="final-flow">ACTIONABLE INSIGHT</span>
+          <article class="story-panel problem-panel" data-from="360" data-to="440">
+            <span class="eyebrow">THE CHALLENGE</span>
+            <h2>CAN SURFACE SIGNALS<br><em>REVEAL THE DEPTHS?</em></h2>
+            <div class="problem-stack">
+              <p>OceanEmbed explores whether observable ocean conditions can be used to reconstruct information about the subsurface ocean.</p>
+              <p class="accent"><strong>This is the gap we aim to bridge.</strong></p>
             </div>
           </article>
 
-          <article class="story-panel final-panel" data-from="995" data-to="1001">
-            <span class="final-depth">1000m</span>
-            <p>WE WENT DEEP.</p>
-            <h2>NOW WE CAN SEE<br><em>WHAT LIES BENEATH.</em></h2>
-            <strong>OCEAN EMBED</strong>
-            <span>Mapping what lies beneath.</span>
+          <article class="story-panel solution-panel" data-from="440" data-to="520">
+            <span class="eyebrow">SOLUTION · DATASET</span>
+            <h2>BUILD THE<br><em>OCEAN DATASET.</em></h2>
+            <div class="problem-stack">
+              <p>We begin with ocean data that represents conditions across locations and depths.</p>
+              <p class="accent"><strong>GLORYS provides the foundation for learning the relationship between surface and subsurface conditions.</strong></p>
+            </div>
+          </article>
+
+          <article class="story-panel solution-panel" data-from="520" data-to="600">
+            <span class="eyebrow">SOLUTION · MODEL</span>
+            <h2>TRAIN<br><em>THE MODEL.</em></h2>
+            <div class="problem-stack">
+              <p>The model learns patterns connecting observable ocean conditions with variables beneath the surface.</p>
+              <p class="accent"><strong>Temperature · Height · Depth</strong></p>
+              <p>Training across many locations allows the model to learn relationships that are difficult to observe directly everywhere.</p>
+            </div>
+          </article>
+
+          <article class="story-panel solution-panel" data-from="600" data-to="680">
+            <span class="eyebrow">SOLUTION · RECONSTRUCTION</span>
+            <h2>RECONSTRUCT<br><em>THE HIDDEN OCEAN.</em></h2>
+            <div class="problem-stack">
+              <p>Once trained, the model can estimate subsurface conditions from available ocean observations.</p>
+              <p class="accent"><strong>From what we can observe<br>to what we cannot directly see.</strong></p>
+            </div>
+          </article>
+
+          <article class="story-panel impact-panel" data-from="680" data-to="760">
+            <span class="eyebrow">VALIDATION</span>
+            <h2>TEST AGAINST<br><em>REAL OBSERVATIONS.</em></h2>
+            <div class="problem-stack">
+              <p>Predictions need to be tested against observations that were not used simply as model outputs.</p>
+              <p class="accent"><strong>ARGO FLOATS PROVIDE AN IMPORTANT REFERENCE.</strong></p>
+              <p>Their measurements through the water column allow us to compare reconstructed conditions with observed ocean conditions.</p>
+            </div>
+          </article>
+
+          <article class="story-panel impact-panel" data-from="760" data-to="840">
+            <span class="eyebrow">VALIDATION · ERROR</span>
+            <h2>MEASURE<br><em>THE ERROR.</em></h2>
+            <div class="problem-stack">
+              <p>We evaluate how closely the reconstructed ocean matches the observations.</p>
+              <p class="accent"><strong>RMSE<br>BIAS<br>CORRELATION</strong></p>
+              <p>Together, these metrics help describe the accuracy, systematic error, and ability of the model to capture observed patterns.</p>
+            </div>
+          </article>
+
+          <article class="story-panel impact-panel" data-from="840" data-to="920">
+            <span class="eyebrow">ITERATION</span>
+            <h2>LEARN. COMPARE.<br><em>IMPROVE.</em></h2>
+            <div class="problem-stack">
+              <p>Model evaluation is not the final step. Prediction errors reveal where the reconstruction can be improved.</p>
+              <p class="accent"><strong>PREDICT → COMPARE → MEASURE → IMPROVE</strong></p>
+              <p>Repeated training and validation help us understand the strengths and limitations of the approach.</p>
+            </div>
+          </article>
+
+          <article class="story-panel solution-panel" data-from="920" data-to="1000">
+            <span class="eyebrow">APPLICATION</span>
+            <h2>FROM TRAINING TO<br><em>REAL-WORLD PREDICTION.</em></h2>
+            <div class="problem-stack">
+              <p>After evaluation, the model can be applied to locations where direct subsurface observations are limited.</p>
+              <p class="accent"><strong>SURFACE OBSERVATIONS → SUBSURFACE ESTIMATION</strong></p>
+              <p>The goal is not to replace direct measurements, but to extend our ability to understand the ocean between them.</p>
+            </div>
+          </article>
+
+          <article class="story-panel final-panel" data-from="1000" data-to="1100">
+            <span class="eyebrow">THE FINAL VISION</span>
+            <h2>FROM SCATTERED<br>OBSERVATIONS TO A<br><em>CLEARER VIEW<br>OF THE OCEAN.</em></h2>
+            <div class="problem-stack">
+              <p>OceanEmbed aims to make subsurface ocean information easier to explore across locations where direct measurements are limited.</p>
+              <p class="accent"><strong>Observe the surface.<br>Learn the hidden patterns.<br>Reconstruct the depths.</strong></p>
+            </div>
           </article>
         </div>
       </div>
@@ -580,7 +727,7 @@ body {
    more cinematic feel; lower for a snappier one. */
 .ocean-track {
   position: relative;
-  height: 1000vh;
+  height: 7500vh;
 }
 
 .ocean-stage {
@@ -840,10 +987,10 @@ body {
 .story-panel {
   position:absolute;
   left:clamp(1.2rem,6vw,6.5rem);
-  top:50%;
+  top:var(--panel-offset, 50%);
   width:min(560px,43vw);
   max-height:72vh;
-  transform:translate3d(0,-44%,18px);
+  transform:translate3d(0,calc(var(--panel-offset, 0%) + 6%),18px);
   opacity:0;
   transition:opacity .7s cubic-bezier(.2,.8,.2,1),transform .9s cubic-bezier(.2,.8,.2,1);
   z-index:2;
@@ -851,6 +998,9 @@ body {
 .story-panel.on {
   opacity:1;
   transform:translate3d(0,-50%,0);
+}
+.story-hero {
+  top: 50% !important;
 }
 .eyebrow {
   display:block;
@@ -1052,6 +1202,15 @@ body {
   font:600 .7rem "Public Sans",sans-serif;
   letter-spacing:.12em;
 }
+@keyframes kelp-drift {
+  0%   { transform: skewX(-3deg) rotate(-1deg); }
+  50%  { transform: skewX(4deg) rotate(2deg); }
+  100% { transform: skewX(-3deg) rotate(-1deg); }
+}
+@keyframes gentle-sway {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(2deg); }
+}
 .impact-flow i {
   display:block;
   color:#7ce0d0;
@@ -1162,7 +1321,7 @@ export default function OceanHero() {
          TUNING — every number worth changing lives here.
          ══════════════════════════════════════════════════════════════ */
       const CFG = {
-        maxDepth: 1000,   // metres at the end of the scroll
+        maxDepth: 1200,   // metres at the end of the scroll
         pxPerMetre: 2.6,    // ruler spacing, in viewBox units
         restEnd: 0.0,   // p: intro holds until here (now animates immediately)
         moveEnd: 0.18,  // p: boat stops sliding right, float starts diving
@@ -1237,7 +1396,7 @@ export default function OceanHero() {
 
       /* ── cached nodes ────────────────────────────────────────────── */
       const N = {
-        glow: $('glow'), waterWrap: $('waterWrap'), rays: $('rays'), deepFade: $('deepFade'),
+        glow: $('glow'), sun: $('sun'), clouds: $('clouds'), waterWrap: $('waterWrap'), rays: $('rays'), deepFade: $('deepFade'),
         snow: $('snow'), ruler: $('ruler'), guide: $('guide'), wire: $('wire'),
         boat: $('boat'), waves: $('waves'), sat: $('sat'), beam: $('beam'),
         packets: [...$('packets').children], argo: $('argo'), pings: $('pings'),
@@ -1354,8 +1513,15 @@ export default function OceanHero() {
       function draw(p) {
         const { restEnd: R, moveEnd: M } = CFG;
 
+        /* ---- depth calculation --------------------------------- */
+        const depth = p <= M
+          ? mapE(p, R, M, 0, 50)
+          : map(p, M, 1, 50, CFG.maxDepth);
+
         /* ---- surface: waterline climbs as we dive -------------- */
-        const waterY = mapE(p, R, M, Y(FY.waterRest), Y(FY.waterEnd));
+        const waterY = p <= M 
+          ? mapE(p, R, M, Y(FY.waterRest), Y(FY.waterEnd))
+          : map(depth, 900, 1150, Y(FY.waterEnd), Y(-0.25));
 
         /* ---- boat: shrinks and slides to the right ------------- */
         const narrow = band.w < 760;                 // portrait phone
@@ -1377,13 +1543,25 @@ export default function OceanHero() {
         const fs = mapE(p, R, M, narrow ? 0.70 : 0.78, narrow ? 0.48 : 0.55);
         N.argo.style.transform = `translate(${fx}px,${fy}px) scale(${fs})`;
 
-        const depth = p <= M
-          ? mapE(p, R, M, 0, 50)
-          : map(p, M, 1, 50, CFG.maxDepth);
+        /* ---- floating argo logic ------------------------------- */
+
+        // Abyssal descent opacities
+        const surfaceOp = 1 - clamp((depth - 850) / 200);   // Fades down from 850m to 1050m
+        const signalFade = 1 - clamp((depth - 950) / 150);  // Fades down from 950m to 1100m
+        const bedOp = clamp((depth - 950) / 150);           // Grows from 950m to 1100m
+        const animalOp = 1 - clamp((depth - 1000) / 200);   // Fades down from 1000m to 1200m
 
         /* ---- water body + waves ------------------------------- */
         N.waterWrap.style.transform = `translate(0px,${waterY}px)`;
+        // NOTE: N.waterWrap MUST NOT fade opacity, it forms the entire full screen deep ocean background.
         N.waves.style.transform = `translate(0px,${waterY}px)`;
+        N.waves.style.opacity = surfaceOp.toFixed(3);
+        if (N.sun) N.sun.style.opacity = surfaceOp.toFixed(3);
+        if (N.clouds) N.clouds.style.opacity = (surfaceOp * 0.55).toFixed(3);
+        N.boat.style.opacity = surfaceOp.toFixed(3);
+        N.sat.style.opacity = surfaceOp.toFixed(3);
+        N.glow.style.opacity = surfaceOp.toFixed(3);
+
         N.rays.style.transform = `translate(0px,${waterY}px)`;
         N.clipRect.setAttribute('y', waterY.toFixed(1));
         N.surfaceTag.style.transform = `translate(${X(FX.tag)}px,${(waterY + (narrow ? 54 : -26)).toFixed(1)}px)`;
@@ -1397,24 +1575,26 @@ export default function OceanHero() {
         const hx = bx, hy = by + 30 * bs;
         const tx = fx, ty = fy - 56 * fs;
         N.wire.setAttribute('d', `M ${hx.toFixed(1)} ${hy.toFixed(1)} L ${tx.toFixed(1)} ${ty.toFixed(1)}`);
+        N.wire.style.opacity = signalFade.toFixed(3);
 
         /* ---- ruler + guide line ------------------------------- */
         N.ruler.style.transform = `translate(${(X(narrow ? 0.34 : FX.ruler) - 300).toFixed(1)}px,${(fy - depth * CFG.pxPerMetre).toFixed(1)}px)`;
         N.ruler.style.opacity = String(ease((p - R * 0.6) / 0.18));
         N.guide.style.transform = `translate(0px,${fy}px)`;
-        N.guide.style.opacity = String(ease((p - M) / 0.12) * 0.9);
+        N.guide.style.opacity = (ease((p - M) / 0.12) * 0.9 * signalFade).toFixed(3);
 
         /* ---- depth cues --------------------------------------- */
         N.deepFade.setAttribute('opacity', (clamp(depth / 900) * 0.85).toFixed(3));
-        N.skyDim.setAttribute('opacity', (clamp(depth / 1000) * 0.42).toFixed(3));
+        N.skyDim.setAttribute('opacity', clamp(depth / 1100).toFixed(3));
         N.argoHalo.setAttribute('opacity', clamp((depth - 120) / 420).toFixed(3));
-        N.rays.setAttribute('opacity', (1 - clamp(depth / 260)).toFixed(3));
+        N.rays.setAttribute('opacity', ((1 - clamp(depth / 260)) * surfaceOp).toFixed(3));
         N.snow.setAttribute('opacity', clamp((depth - 140) / 220).toFixed(3));
         N.pings.setAttribute('opacity', (0.35 + 0.65 * Math.abs(Math.sin(performance.now() / 900))).toFixed(3));
 
         /* ---- uplink beam -------------------------------------- */
         const mastX = bx + 51 * bs, mastY = by - 226 * bs;
         N.beam.setAttribute('d', `M ${sx.toFixed(1)} ${(sy + 36 * ss).toFixed(1)} L ${mastX.toFixed(1)} ${mastY.toFixed(1)}`);
+        N.beam.style.opacity = signalFade.toFixed(3);
         if (!reduce) {
           N.beam.style.strokeDashoffset = String(-(performance.now() / 26) % 22);
           const len = N.beam.getTotalLength();
@@ -1427,10 +1607,34 @@ export default function OceanHero() {
         }
 
         /* ---- OceanEmbed story layer ---------------------------- */
+        const f_water = (waterY - band.top) / band.h;
+        const currentBedY = map(depth, 800, 1200, 600, 0);
+        const f_bed = (420 + currentBedY - band.top) / band.h;
+
+        const safeTopMargin = window.innerWidth < 700 ? 10 : 14;
+        const safeBotMargin = 8;
+        
+        let safeTopVh = (f_water * 100) + safeTopMargin;
+        if (safeTopVh < 10) safeTopVh = 10;
+        
+        const safeBotVh = Math.min(100, f_bed * 100) - safeBotMargin;
+
         N.storyPanels.forEach((panel) => {
           const from = +panel.dataset.from, to = +panel.dataset.to;
           const active = depth >= from && depth < to;
           panel.classList.toggle('on', active);
+
+          if (active && !panel.classList.contains('story-hero')) {
+            const ph = (panel.offsetHeight / window.innerHeight) * 100;
+            // Inject small custom offset exclusively for Data Gap panel
+            const isDataGap = from === 280;
+            const extraOffset = isDataGap ? (window.innerWidth < 700 ? 6 : 8) : 0;
+            
+            let center = (safeTopVh + safeBotVh) / 2 + extraOffset;
+            center = Math.max(safeTopVh + ph / 2, center);
+            center = Math.min(safeBotVh - ph / 2, center);
+            panel.style.setProperty('--panel-offset', `${center.toFixed(2)}vh`);
+          }
         });
         N.navButtons.forEach((b) => {
           const d = +b.dataset.depth;
@@ -1454,22 +1658,27 @@ export default function OceanHero() {
         if (N.marineFish) {
           const fishY = map(depth, 30, 250, 950, -150);
           N.marineFish.style.transform = `translate(0px,${fishY}px)`;
+          N.marineFish.style.opacity = animalOp.toFixed(3);
         }
         if (N.marineShark) {
           const sharkY = map(depth, 150, 500, 950, -150);
           N.marineShark.style.transform = `translate(0px,${sharkY}px)`;
+          N.marineShark.style.opacity = animalOp.toFixed(3);
         }
         if (N.marineWhale) {
           const whaleY = map(depth, 400, 750, 1050, -250);
           N.marineWhale.style.transform = `translate(0px,${whaleY}px)`;
+          N.marineWhale.style.opacity = animalOp.toFixed(3);
         }
         if (N.marineOcto) {
           const octoY = map(depth, 650, 1000, 950, -100);
           N.marineOcto.style.transform = `translate(0px,${octoY}px)`;
+          N.marineOcto.style.opacity = animalOp.toFixed(3);
         }
         if (N.marineBed) {
-          const bedY = map(depth, 800, 1000, 600, 0);
+          const bedY = map(depth, 800, 1200, 600, 0);
           N.marineBed.style.transform = `translate(0px,${bedY}px)`;
+          N.marineBed.style.opacity = bedOp.toFixed(3);
         }
 
         /* ---- Cinematic Hero Title Sequence -------------------- */
