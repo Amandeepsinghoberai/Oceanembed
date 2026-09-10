@@ -1,5 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function Footer() {
   return (
@@ -9,14 +10,16 @@ export default function Footer() {
         {/* TOP / BRAND SECTION */}
         <div className="footer-brand">
           <div className="logo-container">
-            <Image 
-              src="/oceanembed-logo-v2.png" 
-              alt="OceanEmbed Logo" 
-              width={260} 
-              height={70} 
-              className="footer-logo"
-              priority
-            />
+            <Link href="/">
+              <Image 
+                src="/oceanembed-logo-v2.png" 
+                alt="OceanEmbed Logo" 
+                width={200} 
+                height={60} 
+                className="footer-logo"
+                priority
+              />
+            </Link>
           </div>
           <p className="footer-desc">
             Exploring the ocean through data, science, and interactive visualization.
@@ -27,21 +30,21 @@ export default function Footer() {
         <div className="footer-nav-groups">
           <div className="footer-nav-col">
             <h4>EXPLORE</h4>
-            <a href="#">Platform</a>
-            <a href="#">Solution</a>
-            <a href="#">Technology</a>
+            <Link href="/">Platform</Link>
+            <Link href="/solution">Solution</Link>
+            <Link href="/technology">Technology</Link>
           </div>
           <div className="footer-nav-col">
             <h4>OCEAN DATA</h4>
-            <a href="#">Argo Floats</a>
-            <a href="#">GLORYS Reanalysis</a>
-            <a href="#">Integration</a>
+            <Link href="/data">Argo Floats</Link>
+            <Link href="/data">GLORYS Reanalysis</Link>
+            <Link href="/technology">Integration</Link>
           </div>
           <div className="footer-nav-col">
             <h4>RESOURCES</h4>
-            <a href="#">About Us</a>
-            <a href="#">Documentation</a>
-            <a href="#">Impact</a>
+            <Link href="/impact">About Us</Link>
+            <Link href="/technology">Documentation</Link>
+            <Link href="/impact">Impact</Link>
           </div>
         </div>
 
@@ -51,15 +54,15 @@ export default function Footer() {
       <div className="footer-bottom">
         <p className="copyright">© 2026 OceanEmbed</p>
         <div className="legal-links">
-          <a href="#">Privacy</a>
-          <a href="#">Terms</a>
+          <Link href="#">Privacy</Link>
+          <Link href="#">Terms</Link>
         </div>
       </div>
 
       <style>{`
         .ocean-footer {
-          background-color: #956039;
-          padding: 8rem 5% 4rem;
+          background-color: transparent;
+          padding: 7rem 5% 4rem;
           font-family: inherit;
           z-index: 50;
           position: relative;
@@ -69,7 +72,7 @@ export default function Footer() {
           max-width: 1240px;
           margin: 0 auto;
           display: grid;
-          grid-template-columns: 1.2fr 2fr;
+          grid-template-columns: 1fr 2fr;
           gap: 6rem;
         }
 
@@ -90,10 +93,10 @@ export default function Footer() {
         }
 
         .footer-desc {
-          color: rgba(255, 255, 255, 0.45);
-          font-size: 0.9rem;
-          line-height: 1.7;
-          letter-spacing: 0.02em;
+          color: rgba(238, 250, 255, 0.7);
+          font-family: var(--font-public-sans), sans-serif;
+          font-size: 0.95rem;
+          line-height: 1.6;
           margin: 0;
           font-weight: 400;
         }
@@ -105,10 +108,10 @@ export default function Footer() {
         }
 
         .footer-nav-col h4 {
-          color: rgba(255, 255, 255, 0.9);
-          font-family: "Bricolage Grotesque", sans-serif;
-          font-size: 0.72rem;
-          letter-spacing: 0.15em;
+          color: #fff;
+          font-family: var(--font-space-grotesk), sans-serif;
+          font-size: 0.85rem;
+          letter-spacing: 0.1em;
           font-weight: 600;
           margin-top: 0;
           margin-bottom: 2rem;
@@ -117,31 +120,31 @@ export default function Footer() {
 
         .footer-nav-col a {
           display: block;
-          color: rgba(255, 255, 255, 0.45);
+          color: rgba(120, 203, 233, 0.6);
+          font-family: var(--font-public-sans), sans-serif;
           text-decoration: none;
-          font-size: 0.88rem;
+          font-size: 0.95rem;
           font-weight: 400;
-          margin-bottom: 1.25rem;
-          letter-spacing: 0.03em;
+          margin-bottom: 1.2rem;
+          letter-spacing: 0.02em;
           transition: color 0.25s ease;
         }
 
         .footer-nav-col a:hover {
-          color: #ffffff;
+          color: #7ce0d0;
         }
 
         .footer-bottom {
           max-width: 1240px;
-          margin: 7rem auto 0;
-          padding-top: 2rem;
-          border-top: 1px solid rgba(255, 255, 255, 0.08);
+          margin: 6rem auto 0;
+          padding-top: 0;
+          border-top: none; 
           display: flex;
           justify-content: space-between;
           align-items: center;
-          font-size: 0.78rem;
+          font-size: 0.8rem;
           font-weight: 400;
-          color: rgba(255, 255, 255, 0.35);
-          letter-spacing: 0.08em;
+          color: rgba(120, 203, 233, 0.4);
         }
 
         .legal-links {
@@ -156,7 +159,7 @@ export default function Footer() {
         }
 
         .legal-links a:hover {
-          color: rgba(255, 255, 255, 0.8);
+          color: rgba(238, 250, 255, 0.8);
         }
 
         @media (max-width: 900px) {

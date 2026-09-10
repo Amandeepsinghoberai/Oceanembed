@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 
 /**
  * OceanEmbed scroll hero — boat + satellite at the surface,
@@ -566,11 +567,11 @@ const MARKUP = `
             <img src="/oceanembed-logo-v2.png" alt="OceanEmbed Logo" style="height: 48px; width: auto; mix-blend-mode: screen;" />
           </button>
           <nav aria-label="Primary navigation">
-            <button data-depth="0">PLATFORM</button>
-            <button data-depth="440">SOLUTION</button>
-            <button data-depth="520">TECHNOLOGY</button>
-            <button data-depth="680">DATA</button>
-            <button data-depth="920">IMPACT</button>
+            <button data-depth="0" data-href="/">PLATFORM</button>
+            <button data-depth="440" data-href="/solution">SOLUTION</button>
+            <button data-depth="520" data-href="/technology">TECHNOLOGY</button>
+            <button data-depth="680" data-href="/data">DATA</button>
+            <button data-depth="920" data-href="/impact">IMPACT</button>
           </nav>
           <div class="nav-depth"><span></span><b>000m</b></div>
         </header>
@@ -1313,6 +1314,7 @@ body {
 
 export default function OceanHero() {
   const rootRef = useRef(null);
+  const router = useRouter();
 
   useEffect(() => {
     function initOceanHero() {
@@ -1731,7 +1733,14 @@ export default function OceanHero() {
         const p = d <= 50 ? M * (d / 50) : M + ((d - 50) / (CFG.maxDepth - 50)) * (1 - M);
         window.scrollTo({ top: window.scrollY + r.top + clamp(p) * span, behavior: reduce ? 'auto' : 'smooth' });
       };
-      N.navButtons.forEach((b) => b.addEventListener('click', () => jumpToDepth(+b.dataset.depth)));
+      N.navButtons.forEach((b) => b.addEventListener('click', () => {
+        const href = b.dataset.href;
+        if (href && href !== '/') {
+          router.push(href);
+        } else {
+          jumpToDepth(+b.dataset.depth);
+        }
+      }));
       N.footerButtons.forEach((b) => b.addEventListener('click', () => {
         window.scrollTo({ top: track.offsetTop + clamp((+b.dataset.footerDepth) / 1000) * (track.offsetHeight - window.innerHeight), behavior: reduce ? 'auto' : 'smooth' });
       }));

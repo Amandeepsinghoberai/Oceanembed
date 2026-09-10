@@ -1,0 +1,11 @@
+{
+  "source": "Copernicus OSTIA NRT",
+  "date": "2026-09-07T00:00:00Z",
+  "latMin": -34.974998474121094,
+  "latMax": 29.975000381469727,
+  "lonMin": 40.025001525878906,
+  "lonMax": 114.9749984741211,
+  "latCount": 1300,
+  "lonCount": 1500,
+  "resolution": 0.05
+}

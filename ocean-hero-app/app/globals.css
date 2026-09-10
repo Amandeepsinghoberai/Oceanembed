@@ -27,3 +27,27 @@ body {
  *
  * See INTEGRATION.md, Step 4, for the full explanation.
  */
+
+.ocean-page-bg {
+  min-height: 100vh;
+  /* Cinematic progressive gradient: Sky/Surface -> Deep Ocean -> Seabed Navy */
+  background: linear-gradient(
+    to bottom,
+    #176f9b 0%,
+    #0d527a 15%,
+    #052945 40%,
+    #021223 75%,
+    #010915 100%
+  );
+  color: #eaf7ff;
+  display: flex;
+  flex-direction: column;
+}
+
+.ocean-page-bg > main {
+  flex: 1; /* Pushes footer down */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 70px; /* Accounts for fixed navbar */
+}

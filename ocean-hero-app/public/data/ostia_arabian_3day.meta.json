@@ -1,0 +1,20 @@
+{
+  "source": "Copernicus Marine OSTIA",
+  "variable": "analysed_sst",
+  "unit": "Celsius",
+  "dates": [
+    "2026-09-05T00:00:00Z",
+    "2026-09-06T00:00:00Z",
+    "2026-09-07T00:00:00Z"
+  ],
+  "latitude_min": 10.024999618530273,
+  "latitude_max": 19.975000381469727,
+  "longitude_min": 60.025001525878906,
+  "longitude_max": 69.9749984741211,
+  "latitude_count": 200,
+  "longitude_count": 200,
+  "time_count": 3,
+  "binary_filename": "ostia_arabian_3day.bin",
+  "data_type": "Float32",
+  "missing_value": "NaN"
+}
