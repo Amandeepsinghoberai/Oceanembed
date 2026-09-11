@@ -1,132 +1,79 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { MockOceanDataProvider } from '@/data/MockOceanDataProvider';
+import { ModelResultsProvider } from '@/data/ModelResultsProvider';
 
-import { RealSSTDataProvider } from '@/data/RealSSTDataProvider';
-import { RealSalinityDataProvider } from '@/data/RealSalinityDataProvider';
-import { RealCurrentDataProvider } from '@/data/RealCurrentDataProvider';
-import { RealGLORYSDataProvider } from '@/data/RealGLORYSDataProvider';
-import { RealOceanDataProvider } from '@/data/RealOceanDataProvider';
-import { RealProfileDataProvider } from '@/data/RealProfileDataProvider';
-import { RealWindDataProvider } from '@/data/RealWindDataProvider';
+// Real depths from the trained model's output (identical across all 5
+// demo points) — used as a fallback before a result has loaded.
+const DEFAULT_DEPTHS_M = [0, 5, 10, 20, 30, 50, 75, 100, 125, 150, 200, 300, 500, 700, 1000];
 
-export default function AnalysisPanel({ depth, setDepth, isSurface, setIsSurface, selectedLocation, selectedDateIndex, setSelectedDateIndex, availableDates }) {
-  const [realSST, setRealSST] = useState(null);
-  const [realSalinity, setRealSalinity] = useState(null);
-  const [realCurrent, setRealCurrent] = useState(null);
-  const [glorysTemperature, setGlorysTemperature] = useState(null);
-  const [glorysSalinity, setGlorysSalinity] = useState(null);
-  const [glorysCurrent, setGlorysCurrent] = useState(null);
-  const [glorysSSH, setGlorysSSH] = useState(null);
-  const [realWind, setRealWind] = useState(null);
-  const [realProfile, setRealProfile] = useState(null);
+// surface_state carries 2 fields for Bay of Bengal points and 6 for
+// Arabian Sea points — this renders whichever keys are actually present
+// on the matched result, in a fixed display order.
+const SURFACE_FIELDS = [
+  { key: 'sst_c', label: 'SST', format: (v) => `${v.toFixed(2)}°C` },
+  { key: 'ssh_m', label: 'SSH', format: (v) => `${v.toFixed(3)} m` },
+  { key: 'sss_psu', label: 'SSS', format: (v) => `${v.toFixed(2)} PSU` },
+  { key: 'mld_m', label: 'MLD', format: (v) => `${v.toFixed(1)} m` },
+  { key: 'wind_stress_curl', label: 'WIND STRESS CURL', format: (v) => `${v.toExponential(2)} N/m³` },
+  { key: 'eddy_vorticity', label: 'EDDY VORTICITY', format: (v) => `${v.toExponential(2)} 1/s` },
+];
+
+export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, setIsSurface, selectedId }) {
+  const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchRealData() {
+    let cancelled = false;
+    async function fetchResult() {
       setIsLoading(true);
-      await Promise.all([
-        RealSSTDataProvider.load(),
-        RealSalinityDataProvider.load(),
-        RealCurrentDataProvider.load(),
-        RealGLORYSDataProvider.load(),
-        RealProfileDataProvider.load(),
-        RealWindDataProvider.load()
-      ]);
-      
-      // Prefetch the chunk into memory dynamically since the unified UI drives everything off Grid data.
-      await RealSSTDataProvider.getSSTGrid(selectedDateIndex);
-      
-      const sst = RealSSTDataProvider.getSST(
-        selectedLocation.lat,
-        selectedLocation.lon,
-        selectedDateIndex
-      );
-      const sal = RealSalinityDataProvider.getSalinity(
-        selectedLocation.lat,
-        selectedLocation.lon,
-        selectedDateIndex
-      );
-      const cur = RealCurrentDataProvider.getCurrent(
-        selectedLocation.lat,
-        selectedLocation.lon,
-        selectedDateIndex
-      );
-      const fallbackTemperature = RealGLORYSDataProvider.getTemperature(
-        selectedLocation.lat,
-        selectedLocation.lon
-      );
-      const fallbackSalinity = RealGLORYSDataProvider.getSalinity(
-        selectedLocation.lat,
-        selectedLocation.lon
-      );
-      const fallbackCurrent = RealGLORYSDataProvider.getCurrent(
-        selectedLocation.lat,
-        selectedLocation.lon
-      );
-      const fallbackSSH = RealGLORYSDataProvider.getSSH(
-        selectedLocation.lat,
-        selectedLocation.lon
-      );
-      const wind = RealWindDataProvider.getWind(
-        selectedLocation.lat,
-        selectedLocation.lon
-      );
-      const prof = RealProfileDataProvider.getProfile(
-        selectedLocation.lat,
-        selectedLocation.lon
-      );
-      setRealSST(sst);
-      setRealSalinity(sal);
-      setRealCurrent(cur);
-      setGlorysTemperature(fallbackTemperature);
-      setGlorysSalinity(fallbackSalinity);
-      setGlorysCurrent(fallbackCurrent);
-      setGlorysSSH(fallbackSSH);
-      setRealWind(wind);
-      setRealProfile(prof);
+      await ModelResultsProvider.load();
+      if (cancelled) return;
+      setResult(ModelResultsProvider.getResultById(selectedId));
       setIsLoading(false);
     }
-    fetchRealData();
-  }, [selectedLocation, selectedDateIndex]);
+    fetchResult();
+    return () => { cancelled = true; };
+  }, [selectedId]);
 
-  const currentData = realProfile ? RealProfileDataProvider.getTemperatureAtDepth(selectedLocation.lat, selectedLocation.lon, depth) : null;
-  const currentTempDisplay = currentData ? `${currentData.temperature.toFixed(1)}°C` : "DATA UNAVAILABLE";
-  const currentSourceDisplay = currentData ? `${currentData.source} (${currentData.timestamp.split('T')[0]} 12:00 UTC)` : "DATA UNAVAILABLE";
+  const depthsM = result?.profile?.depths_m || DEFAULT_DEPTHS_M;
+  const clampedDepthIndex = Math.min(depthIndex, depthsM.length - 1);
+  const depthValueM = depthsM[clampedDepthIndex];
 
-  const surfaceTemperature = realSST !== null ? realSST : glorysTemperature?.value ?? null;
-  const surfaceTemperatureSource = realSST !== null ? 'OSTIA' : glorysTemperature?.source;
-  const salinity = realSalinity !== null ? `${realSalinity} PSU` : glorysSalinity ? `${glorysSalinity.value.toFixed(1)} PSU` : "DATA UNAVAILABLE";
-  const current = realCurrent || glorysCurrent;
-  const ssh = glorysSSH;
+  const predictedTemp = result?.profile?.predicted_temp_c?.[clampedDepthIndex];
+  const argoTemp = result?.profile?.argo_temp_c?.[clampedDepthIndex];
+  const confidencePct = result?.profile?.confidence_pct?.[clampedDepthIndex];
 
-  // Normalize depth value to visually display 0 - 1000 properly in SVG rendering mock
-  const graphDepthRatio = depth / 1000;
-  
-  let polylinePoints = "";
-  if (realProfile && realProfile.temperatures && realProfile.depths) {
-      const points = realProfile.depths.map((d, i) => {
-         const t = realProfile.temperatures[i];
-         const x = (t - 5) * 4;
-         const y = d * 0.04;
-         return `${x},${y}`;
-      });
-      polylinePoints = points.join(" ");
-  }
+  const presentSurfaceFields = result
+    ? SURFACE_FIELDS.filter((f) => result.surface_state[f.key] !== undefined)
+    : [];
+
+  // Chart space: x from temperature, y from depth (0-1000m -> 0-40 in the
+  // 100x40 viewBox). Both the predicted and Argo curves share this mapping
+  // so they're directly comparable on the same axes.
+  const toPoints = (depths, temps) =>
+    depths.map((d, i) => `${(temps[i] - 5) * 4},${d * 0.04}`).join(' ');
+  const predictedPoints = result ? toPoints(result.profile.depths_m, result.profile.predicted_temp_c) : '';
+  const argoPoints = result ? toPoints(result.profile.depths_m, result.profile.argo_temp_c) : '';
+
+  // Depth indicator: a horizontal line at the selected depth (y = depth * 0.04),
+  // with a dot marking the predicted curve at that depth.
+  const trackerY = depthValueM * 0.04;
+  const trackerX = Number.isFinite(predictedTemp) ? (predictedTemp - 5) * 4 : 5;
+
   return (
     <div className="analysis-panel">
-      
+
       {/* Mode Selector */}
       <div className="panel-mode-selector">
-        <button 
-          className={isSurface ? "active" : ""} 
+        <button
+          className={isSurface ? "active" : ""}
           onClick={() => setIsSurface(true)}
         >
           SURFACE TEMPERATURE
         </button>
-        <button 
-          className={!isSurface ? "active" : ""} 
+        <button
+          className={!isSurface ? "active" : ""}
           onClick={() => setIsSurface(false)}
         >
           UNDER-SURFACE TEMP
@@ -136,10 +83,12 @@ export default function AnalysisPanel({ depth, setDepth, isSurface, setIsSurface
       <div className="panel-section">
         <div className="section-label">LOCATION</div>
         <div className="location-readout">
-          <div className="loc-region">{selectedLocation.regionName}</div>
-          <div className="loc-coords">
-            {selectedLocation.lat >= 0 ? `${selectedLocation.lat}° N` : `${Math.abs(selectedLocation.lat)}° S`} • {selectedLocation.lon >= 0 ? `${selectedLocation.lon}° E` : `${Math.abs(selectedLocation.lon)}° W`}
-          </div>
+          <div className="loc-region">{result?.location?.region || (isLoading ? "LOADING…" : "—")}</div>
+          {result?.location && (
+            <div className="loc-coords">
+              {result.location.lat >= 0 ? `${result.location.lat}° N` : `${Math.abs(result.location.lat)}° S`} • {result.location.lon >= 0 ? `${result.location.lon}° E` : `${Math.abs(result.location.lon)}° W`}
+            </div>
+          )}
         </div>
       </div>
 
@@ -151,85 +100,61 @@ export default function AnalysisPanel({ depth, setDepth, isSurface, setIsSurface
             <span className="m-label">TEMPERATURE</span>
             <div className="temp-main">
               {isLoading ? "..." : (
-                isSurface ? (surfaceTemperature !== null ? `${surfaceTemperature.toFixed(1)}°C` : "UNAVAILABLE") : currentTempDisplay
+                isSurface
+                  ? (Number.isFinite(result?.surface_state?.sst_c) ? `${result.surface_state.sst_c.toFixed(2)}°C` : "UNAVAILABLE")
+                  : (Number.isFinite(predictedTemp) ? `${predictedTemp.toFixed(2)}°C` : "UNAVAILABLE")
               )}
             </div>
-            {isSurface && surfaceTemperatureSource && (
-              <span className="metric-source">SOURCE: {surfaceTemperatureSource}</span>
+            {!isLoading && !isSurface && Number.isFinite(argoTemp) && (
+              <span className="metric-source">ARGO: {argoTemp.toFixed(2)}°C · CONFIDENCE: {confidencePct.toFixed(1)}%</span>
+            )}
+            {!isLoading && isSurface && (
+              <span className="metric-source">OCEANEMBED MODEL PREDICTION</span>
             )}
          </div>
          <div className="metric">
-            <span className="m-label">OBSERVATION DATE</span>
-            {availableDates && availableDates.length > 0 && (
-              <div className="dates-list" style={{ marginTop: '0.25rem' }}>
-                {availableDates.map((dateStr, idx) => {
-                   const shortDate = dateStr.split('T')[0];
-                   const isSelected = selectedDateIndex === idx;
-                   return (
-                     <button 
-                       key={dateStr} 
-                       className={`date-btn ${isSelected ? 'active' : ''}`}
-                       onClick={() => setSelectedDateIndex && setSelectedDateIndex(idx)}
-                     >
-                       {shortDate}
-                     </button>
-                   );
-                })}
-              </div>
-            )}
+            <span className="m-label">DATE</span>
+            <span className="m-val">{result?.date || "—"}</span>
          </div>
       </div>
 
       <hr className="divider" />
 
-      {/* Ocean Variables */}
-      <div className="panel-section metrics-grid">
-         <div className="metric">
-            <span className="m-label">SALINITY</span>
-            <span className="m-val">{salinity}</span>
-         </div>
-        <div className="metric">
-          <span className="m-label">CURRENT ({(current?.timestamp || RealCurrentDataProvider.getAvailableDates()[0])?.replace('T', ' ').replace('Z', ' UTC') || 'LATEST'})</span>
-          {current !== null ? (
-               <div style={{display: 'flex', flexDirection: 'column', gap: '0.1rem'}}>
-              <span className="m-val">{current.speed.toFixed(3)} m/s ({current.direction}°)</span>
-              <span style={{fontSize: '0.65rem', opacity: 0.6, letterSpacing: '0.05em'}}>U: {current.u.toFixed(3)} | V: {current.v.toFixed(3)}</span>
-               </div>
-            ) : <span className="m-val">DATA UNAVAILABLE</span>}
-         </div>
-      </div>
-
-      <div className="panel-section metrics-grid">
-        <div className="metric">
-          <span className="m-label">SEA SURFACE HEIGHT</span>
-          {ssh ? (
-            <>
-             <span className="m-val">{ssh.value.toFixed(3)} m</span>
-            </>
-          ) : <span className="m-val">DATA UNAVAILABLE</span>}
+      {/* Model Validation Metrics — real, per-point RMSE / bias / correlation */}
+      <div className="panel-section">
+        <div className="section-label">MODEL VALIDATION (VS. ARGO)</div>
+        <div className="metrics-grid">
+          <div className="metric">
+            <span className="m-label">RMSE</span>
+            <span className="m-val">{result ? `${result.metrics.rmse_c.toFixed(3)}°C` : "—"}</span>
+          </div>
+          <div className="metric">
+            <span className="m-label">BIAS</span>
+            <span className="m-val">{result ? `${result.metrics.bias_c.toFixed(3)}°C` : "—"}</span>
+          </div>
+          <div className="metric">
+            <span className="m-label">CORRELATION</span>
+            <span className="m-val">{result ? result.metrics.correlation.toFixed(3) : "—"}</span>
+          </div>
         </div>
       </div>
 
-      <hr className="divider" />
-
-      {/* Wind Variables — NOAA GFS 0.25° */}
-      <div className="panel-section metrics-grid">
-         <div className="metric">
-            <span className="m-label">WIND (2026-09-07 00:00 UTC)</span>
-            {realWind !== null ? (
-               <div style={{display: 'flex', flexDirection: 'column', gap: '0.1rem'}}>
-                  <span className="m-val">{realWind.speed.toFixed(3)} m/s ({realWind.direction}° FROM)</span>
-                  <span style={{fontSize: '0.65rem', opacity: 0.6, letterSpacing: '0.05em'}}>U: {realWind.u.toFixed(3)} | V: {realWind.v.toFixed(3)} m/s</span>
-               </div>
-            ) : <span className="m-val">DATA UNAVAILABLE</span>}
-         </div>
-         <div className="metric">
-            <span className="m-label">WIND SOURCE</span>
-            <span style={{fontSize: '0.65rem', opacity: 0.7, letterSpacing: '0.04em', lineHeight: 1.4}}>
-              {realWind !== null ? 'NOAA GFS 0.25° Global Analysis' : '—'}
-            </span>
-         </div>
-      </div>
+      {isSurface && presentSurfaceFields.length > 0 && (
+        <>
+          <hr className="divider" />
+          <div className="panel-section">
+            <div className="section-label">SURFACE STATE</div>
+            <div className="metrics-grid">
+              {presentSurfaceFields.map((f) => (
+                <div className="metric" key={f.key}>
+                  <span className="m-label">{f.label}</span>
+                  <span className="m-val">{f.format(result.surface_state[f.key])}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
 
       {!isSurface && (
         <>
@@ -244,18 +169,24 @@ export default function AnalysisPanel({ depth, setDepth, isSurface, setIsSurface
                   <line x1="0" y1="10" x2="100" y2="10" stroke="#15799e" strokeWidth="0.2" opacity="0.3" />
                   <line x1="0" y1="20" x2="100" y2="20" stroke="#15799e" strokeWidth="0.2" opacity="0.3" />
                   <line x1="0" y1="30" x2="100" y2="30" stroke="#15799e" strokeWidth="0.2" opacity="0.3" />
-                  
-                  {/* Thermocline mock graph */}
-                  {polylinePoints ? (
-                     <polyline points={polylinePoints} fill="none" stroke="#7ce0d0" strokeWidth="1.5" />
+
+                  {predictedPoints ? (
+                     <polyline points={predictedPoints} fill="none" stroke="#7ce0d0" strokeWidth="1.5" />
                   ) : (
                      <path d="M 5 0 Q 35 15, 65 30 T 95 40" fill="none" stroke="rgba(124, 224, 208, 0.3)" strokeWidth="1.5" strokeDasharray="2 2" />
                   )}
-                  
-                  {/* Dynamic Tracker based on depth slider */}
-                  <line x1={5 + graphDepthRatio*90} y1="0" x2={5 + graphDepthRatio*90} y2="40" stroke="#fff" strokeWidth="0.5" strokeDasharray="1 1" />
-                  <circle cx={5 + graphDepthRatio*90} cy={graphDepthRatio < 0.2 ? 5 : (graphDepthRatio < 0.6 ? 20 : 35)} r="2" fill="#fff" />
+                  {argoPoints && (
+                     <polyline points={argoPoints} fill="none" stroke="#e28c31" strokeWidth="1.2" strokeDasharray="2 1.5" />
+                  )}
+
+                  {/* Selected-depth indicator (horizontal — this chart's y-axis is depth) */}
+                  <line x1="0" y1={trackerY} x2="100" y2={trackerY} stroke="#fff" strokeWidth="0.4" strokeDasharray="1 1" opacity="0.6" />
+                  <circle cx={trackerX} cy={trackerY} r="2" fill="#fff" />
                </svg>
+            </div>
+            <div className="profile-legend">
+              <span><i className="legend-swatch predicted" /> PREDICTED</span>
+              <span><i className="legend-swatch argo" /> ARGO (GROUND TRUTH)</span>
             </div>
           </div>
         </>
@@ -263,31 +194,31 @@ export default function AnalysisPanel({ depth, setDepth, isSurface, setIsSurface
 
       <hr className="divider" />
 
-      {/* Depth Slider or Origin Label */}
+      {/* Depth Selector or Origin Label */}
       <div className="panel-section">
         {isSurface ? (
           <div className="surface-info-block">
-             <div className="section-label">OBSERVATION SOURCE</div>
-             <div className="sensor-source">MULTI-SOURCE OCEAN DATA</div>
-             <div className="source-desc">OceanEmbed combines satellite observations and ocean-model analysis to provide surface ocean conditions.</div>
+             <div className="section-label">MODEL OUTPUT</div>
+             <div className="sensor-source">OCEANEMBED PREDICTION</div>
+             <div className="source-desc">This is the trained OceanEmbed model&apos;s validated output for this point, compared against a held-out Argo float profile.</div>
           </div>
         ) : (
           <>
             <div className="section-row">
               <div className="section-label">DEPTH</div>
-              <div className="slider-value">{depth}m <span>{currentSourceDisplay}</span></div>
+              <div className="slider-value">{depthValueM}m <span>{Number.isFinite(confidencePct) ? `CONFIDENCE: ${confidencePct.toFixed(1)}%` : ''}</span></div>
             </div>
-            
+
             <div className="slider-wrapper">
-              <span className="bound">0m</span>
-              <input 
-                type="range" 
-                min="0" max="1000" step="10" 
-                value={depth} 
-                onChange={(e) => setDepth(Number(e.target.value))} 
+              <span className="bound">{depthsM[0]}m</span>
+              <input
+                type="range"
+                min="0" max={depthsM.length - 1} step="1"
+                value={clampedDepthIndex}
+                onChange={(e) => setDepthIndex(Number(e.target.value))}
                 className="depth-range"
               />
-              <span className="bound">1000m</span>
+              <span className="bound">{depthsM[depthsM.length - 1]}m</span>
             </div>
           </>
         )}
@@ -352,7 +283,7 @@ export default function AnalysisPanel({ depth, setDepth, isSurface, setIsSurface
           font-weight: 500;
           opacity: 0.8;
         }
-        
+
         .location-readout {
           display: flex;
           flex-direction: column;
@@ -399,7 +330,7 @@ export default function AnalysisPanel({ depth, setDepth, isSurface, setIsSurface
           font-weight: 600;
           color: #e28c31; /* warm indicator */
         }
-        
+
         .anomaly-lbl {
           font-size: 0.6rem;
           letter-spacing: 0.05em;
@@ -456,13 +387,6 @@ export default function AnalysisPanel({ depth, setDepth, isSurface, setIsSurface
         }
 
         .depth-range::-webkit-slider-thumb {
-        
-          .metric-source {
-            color: rgba(124, 224, 208, 0.78);
-            font-size: 0.62rem;
-            letter-spacing: 0.04em;
-            line-height: 1.35;
-          }
           width: 14px;
           height: 14px;
           border-radius: 50%;
@@ -470,25 +394,32 @@ export default function AnalysisPanel({ depth, setDepth, isSurface, setIsSurface
           cursor: grab;
           box-shadow: 0 0 10px rgba(124, 224, 208, 0.4);
         }
-        
+
         .depth-range::-webkit-slider-thumb:active {
           cursor: grabbing;
         }
-        
+
+        .metric-source {
+          color: rgba(124, 224, 208, 0.78);
+          font-size: 0.62rem;
+          letter-spacing: 0.04em;
+          line-height: 1.35;
+        }
+
         .surface-info-block {
           display: flex;
           flex-direction: column;
           gap: 0.4rem;
           padding: 1rem 0;
         }
-        
+
         .sensor-source {
           font-family: var(--font-space-grotesk), sans-serif;
           font-size: 1.1rem;
           color: #7ce0d0;
           font-weight: 500;
         }
-        
+
         .source-desc {
           font-size: 0.75rem;
           line-height: 1.4;
@@ -508,6 +439,36 @@ export default function AnalysisPanel({ depth, setDepth, isSurface, setIsSurface
           width: 100%;
           height: 100%;
           display: block;
+        }
+
+        .profile-legend {
+          display: flex;
+          gap: 1rem;
+          margin-top: 0.4rem;
+        }
+
+        .profile-legend span {
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+          font-size: 0.6rem;
+          letter-spacing: 0.05em;
+          color: rgba(238, 250, 255, 0.65);
+        }
+
+        .legend-swatch {
+          display: inline-block;
+          width: 10px;
+          height: 2px;
+          border-radius: 1px;
+        }
+
+        .legend-swatch.predicted {
+          background: #7ce0d0;
+        }
+
+        .legend-swatch.argo {
+          background: #e28c31;
         }
 
         .metrics-grid {
