@@ -10,3 +10,9 @@ yarn-error.log*
 .env*.local
 *.tsbuildinfo
 next-env.d.ts
+
+# Raw ocean data (NetCDF / binary grids) — never belongs in this repo.
+# The app only ever reads public/data/demo_*.json (real model output).
+*.nc
+*.bin
+*.log
