@@ -127,32 +127,51 @@ export default function RealOceanMap({ depth, isSurface, selectedLocation, setSe
   const heatStyle = (isSurface && depth < 200) ? surfaceHeatStyle : deepHeatStyle;
   const opacity = Math.max(0.2, 1 - (depth / 1000));
 
+  const getMapCoordinates = (e) => {
+    if (!svgRef.current || !projectionRef.current) return null;
+
+    const rect = svgRef.current.getBoundingClientRect();
+    const viewBoxWidth = 800;
+    const viewBoxHeight = 500;
+    const scale = Math.min(rect.width / viewBoxWidth, rect.height / viewBoxHeight);
+    const renderedWidth = viewBoxWidth * scale;
+    const renderedHeight = viewBoxHeight * scale;
+    const offsetX = (rect.width - renderedWidth) / 2;
+    const offsetY = (rect.height - renderedHeight) / 2;
+    const x = (e.clientX - rect.left - offsetX) / scale;
+    const y = (e.clientY - rect.top - offsetY) / scale;
+
+    if (x < 0 || x > viewBoxWidth || y < 0 || y > viewBoxHeight) return null;
+
+    const inverted = projectionRef.current.invert([x, y]);
+    if (!inverted) return null;
+
+    const [lon, lat] = inverted;
+
+    // Keep region classification tied to the same inverse-projected point.
+    let regionName = 'Indian Ocean';
+    if (lat > 5 && lon < 75) regionName = 'Arabian Sea';
+    else if (lat > 5 && lon > 80) regionName = 'Bay of Bengal';
+
+    return { lat, lon, x, y, regionName };
+  };
+
   const handlePointer = (e) => {
-    if (!svgRef.current || !projectionRef.current) return;
-    
-    // Ignore interactions directly hitting the land boundaries
     if (e.target.classList.contains('land-mass')) {
       setHoverLocation(null);
       return;
     }
 
-    const rect = svgRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 800;
-    const y = ((e.clientY - rect.top) / rect.height) * 500;
-    
-    const [lon, lat] = projectionRef.current.invert([x, y]);
-    
-    // Attempt basic region classification based on longitude rules
-    let regionName = 'Indian Ocean';
-    if (lat > 5 && lon < 75) regionName = 'Arabian Sea';
-    else if (lat > 5 && lon > 80) regionName = 'Bay of Bengal';
+    const coordinates = getMapCoordinates(e);
+    if (!coordinates) {
+      setHoverLocation(null);
+      return;
+    }
     
     setHoverLocation({
-      lat: parseFloat(lat.toFixed(2)),
-      lon: parseFloat(lon.toFixed(2)),
-      x,
-      y,
-      regionName
+      ...coordinates,
+      displayLat: parseFloat(coordinates.lat.toFixed(2)),
+      displayLon: parseFloat(coordinates.lon.toFixed(2))
     });
   };
 
@@ -161,11 +180,14 @@ export default function RealOceanMap({ depth, isSurface, selectedLocation, setSe
   };
 
   const handleClick = (e) => {
-    if (hoverLocation && !e.target.classList.contains('land-mass')) {
+    if (!e.target.classList.contains('land-mass')) {
+      const coordinates = getMapCoordinates(e);
+      if (!coordinates) return;
+
       setSelectedLocation({
-        lat: hoverLocation.lat,
-        lon: hoverLocation.lon,
-        regionName: hoverLocation.regionName
+        lat: coordinates.lat,
+        lon: coordinates.lon,
+        regionName: coordinates.regionName
       });
     }
   };
@@ -266,7 +288,7 @@ export default function RealOceanMap({ depth, isSurface, selectedLocation, setSe
              <g transform={`translate(${hoverLocation.x + 15}, ${hoverLocation.y + 15})`} style={{ pointerEvents: 'none' }}>
                <rect width="120" height="90" fill="rgba(1, 7, 14, 0.9)" stroke="#3bb3cb" strokeWidth="0.5" rx="2" />
                <text x="10" y="18" fill="#78CBE9" fontSize="7" letterSpacing="0.05em">LOCATION</text>
-               <text x="10" y="32" fill="#fff" fontSize="9" fontWeight="bold">{hoverLocation.lat >= 0 ? `${hoverLocation.lat}°N` : `${Math.abs(hoverLocation.lat)}°S`} • {hoverLocation.lon >= 0 ? `${hoverLocation.lon}°E` : `${Math.abs(hoverLocation.lon)}°W`}</text>
+               <text x="10" y="32" fill="#fff" fontSize="9" fontWeight="bold">{hoverLocation.displayLat >= 0 ? `${hoverLocation.displayLat}°N` : `${Math.abs(hoverLocation.displayLat)}°S`} • {hoverLocation.displayLon >= 0 ? `${hoverLocation.displayLon}°E` : `${Math.abs(hoverLocation.displayLon)}°W`}</text>
                <text x="10" y="44" fill="#7ce0d0" fontSize="7">{hoverLocation.regionName}</text>
                
                <text x="10" y="60" fill="#78CBE9" fontSize="7" letterSpacing="0.05em">SST</text>
