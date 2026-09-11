@@ -14,14 +14,51 @@ const pipeline = [
   { number: "06", title: "ARGO VALIDATION", text: "Independent ARGO observations are used to assess real-world consistency.", tags: ["IN-SITU", "INDEPENDENT"] },
 ];
 
-const inputFields = ["SST", "SSS", "SSH / SLA", "U CURRENT", "V CURRENT", "U WIND", "V WIND"];
 const depths = [0, 5, 10, 20, 30, 50, 75, 100, 125, 150, 200, 300, 500, 700, 1000];
 const evaluationDepths = [0, 50, 100, 200, 500, 1000];
+
 const metrics = [
-  ["RMSE", "Root Mean Square Error", "Magnitude of reconstruction error between predicted and reference temperature."],
-  ["BIAS", "Mean Prediction Error", "Whether the model systematically overestimates or underestimates temperature."],
-  ["CORRELATION", "Pearson Correlation", "How closely predicted temperature variations follow the reference field."],
-  ["MAE", "Mean Absolute Error", "The average absolute difference between prediction and reference."],
+  { short: "RMSE", title: "Root Mean Square Error", text: "Magnitude of reconstruction error between predicted and reference temperature.", bob: "0.637°C", as: "0.834°C" },
+  { short: "CORRELATION", title: "Pearson Correlation", text: "How closely predicted temperature variations follow the reference field.", bob: "0.997", as: "0.988" },
+  { short: "BIAS", title: "Mean Prediction Error", text: "Whether the model systematically overestimates or underestimates temperature.", bob: null, as: null },
+  { short: "MAE", title: "Mean Absolute Error", text: "The average absolute difference between prediction and reference.", bob: null, as: null },
+];
+
+// Real, validated per-depth evaluation results (RMSE °C, Pearson correlation)
+// for each of the two regional models, against withheld ARGO profiles.
+const BOB_DEPTH_METRICS = [
+  { depth: 0, rmse: 0.261, corr: 0.949 }, { depth: 5, rmse: 0.241, corr: 0.958 }, { depth: 10, rmse: 0.250, corr: 0.960 },
+  { depth: 20, rmse: 0.450, corr: 0.877 }, { depth: 30, rmse: 0.818, corr: 0.619 }, { depth: 50, rmse: 1.260, corr: 0.740 },
+  { depth: 75, rmse: 1.430, corr: 0.854 }, { depth: 100, rmse: 1.464, corr: 0.867 }, { depth: 125, rmse: 1.300, corr: 0.861 },
+  { depth: 150, rmse: 0.891, corr: 0.894 }, { depth: 200, rmse: 0.520, corr: 0.910 }, { depth: 300, rmse: 0.254, corr: 0.927 },
+  { depth: 500, rmse: 0.202, corr: 0.921 }, { depth: 700, rmse: 0.173, corr: 0.938 }, { depth: 1000, rmse: 0.163, corr: 0.844 },
+];
+const ARABIAN_SEA_DEPTH_METRICS = [
+  { depth: 0, rmse: 1.034, corr: 0.808 }, { depth: 5, rmse: 0.621, corr: 0.948 }, { depth: 10, rmse: 0.779, corr: 0.919 },
+  { depth: 20, rmse: 0.962, corr: 0.875 }, { depth: 30, rmse: 1.237, corr: 0.822 }, { depth: 50, rmse: 1.330, corr: 0.821 },
+  { depth: 75, rmse: 1.351, corr: 0.819 }, { depth: 100, rmse: 1.278, corr: 0.827 }, { depth: 125, rmse: 1.148, corr: 0.844 },
+  { depth: 150, rmse: 1.026, corr: 0.865 }, { depth: 200, rmse: 1.050, corr: 0.872 }, { depth: 300, rmse: 0.846, corr: 0.886 },
+  { depth: 500, rmse: 0.540, corr: 0.873 }, { depth: 700, rmse: 0.475, corr: 0.891 }, { depth: 1000, rmse: 0.431, corr: 0.879 },
+];
+
+// Fixed en-US thousands grouping — Number.toLocaleString() depends on the
+// runtime's locale, which differs between server (SSR) and browser and
+// causes a hydration mismatch. This is deterministic on both sides.
+function formatCount(n: number): string {
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+const REGION_SUMMARY: Record<string, { rmse: number; correlation: number; n: number; inputs: string[]; clusters: number }> = {
+  "BAY OF BENGAL": { rmse: 0.637, correlation: 0.997, n: 30019, inputs: ["SST", "SSH"], clusters: 5 },
+  "ARABIAN SEA": { rmse: 0.834, correlation: 0.988, n: 2129593, inputs: ["SST", "SSH", "Wind Stress Curl", "MLD", "SSS", "Eddy Vorticity"], clusters: 10 },
+};
+
+const uncertaintyFindings = [
+  "Both regions reconstruct the near-surface layer (0–10 m) most reliably — Bay of Bengal RMSE holds at 0.24–0.26°C, Arabian Sea at 0.62–1.03°C.",
+  "Error peaks in the thermocline, not at depth: Bay of Bengal peaks at 100 m (RMSE 1.464°C), Arabian Sea at 75 m (RMSE 1.351°C) — where vertical gradients are steepest.",
+  "Deep water is easier, not harder, to reconstruct: below 500 m, Bay of Bengal falls to 0.163–0.202°C and Arabian Sea to 0.431–0.540°C.",
+  "Arabian Sea error runs 2–5× higher than Bay of Bengal at nearly every depth — why its model adds four predictors beyond SST/SSH and clusters into 10 regions instead of 5.",
+  "Per-point bias is computed for every prediction (see the 5 live examples on /solution) but isn't yet published as a regional aggregate.",
 ];
 
 function SectionHeading({ title, children }: { title: string; children?: React.ReactNode }) {
@@ -44,40 +81,101 @@ function PipelineFlashcard({ number, title, text, tags, emphasized }: { number: 
   );
 }
 
-function MetricBlock({ short, title, text }: { short: string; title: string; text: string }) {
+function MetricBlock({ short, title, text, bob, as }: { short: string; title: string; text: string; bob: string | null; as: string | null }) {
+  const reported = bob !== null && as !== null;
   return (
     <div className="metric-block">
       <div className="metric-code">{short}</div><h3>{title}</h3><p>{text}</p>
-      <div className="metric-value">—</div><span className="metric-status">AWAITING TRAINED-MODEL EVALUATION</span>
+      {reported ? (
+        <div className="metric-values">
+          <div><span>BAY OF BENGAL</span><strong>{bob}</strong></div>
+          <div><span>ARABIAN SEA</span><strong>{as}</strong></div>
+        </div>
+      ) : (
+        <>
+          <div className="metric-value">—</div>
+          <span className="metric-status">NOT REPORTED IN THIS EVALUATION RELEASE</span>
+        </>
+      )}
     </div>
   );
 }
 
-function ScientificChartPlaceholder({ kind }: { kind: "depth" | "scatter" | "argo" }) {
-  if (kind === "argo") {
-    return (
-      <div className="argo-plot" aria-label="ARGO validation locations pending">
-        <div className="plot-grid ocean-grid" />
-        <span className="map-label label-north">30°N</span>
-        <span className="map-label label-south">5°N</span>
-        <span className="map-label label-west">45°E</span>
-        <span className="map-label label-east">105°E</span>
-        <div className="empty-state"><strong>ARGO VALIDATION PENDING</strong><span>Independent validation results will appear after the trained model is tested against withheld ARGO observations.</span></div>
-      </div>
-    );
-  }
+function DepthRmseChart() {
+  const maxRmse = 1.6;
+  const chartW = 640, chartH = 400;
+  const marginL = 56, marginR = 20, marginT = 16, marginB = 34;
+  const plotW = chartW - marginL - marginR;
+  const plotH = chartH - marginT - marginB;
+  const xFor = (rmse: number) => marginL + (rmse / maxRmse) * plotW;
+  const yFor = (depth: number) => marginT + (depth / 1000) * plotH;
+  const toPoints = (pts: { depth: number; rmse: number }[]) => pts.map(p => `${xFor(p.rmse)},${yFor(p.depth)}`).join(' ');
+  const rmseTicks = [0, 0.5, 1.0, 1.5];
+  const depthTicks = [0, 200, 500, 1000];
 
   return (
-    <div className={`scientific-plot ${kind}-plot`}>
-      <div className="plot-y-axis">{kind === "depth" ? <><span>0</span><span>100</span><span>300</span><span>500</span><span>700</span><span>1000</span></> : <><span>40</span><span>30</span><span>20</span><span>10</span></>}</div>
-      <div className="plot-body">
-        <div className="plot-grid" />
-        {kind === "depth" ? <div className="plot-x-ticks"><span>0</span><span>0.5</span><span>1.0</span><span>1.5</span><span>2.0</span></div> : <div className="one-to-one"><span>1:1 reference</span></div>}
-        <div className="empty-state"><strong>{kind === "depth" ? "MODEL EVALUATION PENDING" : "NO EVALUATION RUN AVAILABLE"}</strong><span>{kind === "depth" ? "Depth-wise performance will appear here after the trained model is evaluated against the reference dataset." : "Predicted-versus-reference samples will appear after model evaluation."}</span></div>
+    <div className="depth-rmse-chart">
+      <svg viewBox={`0 0 ${chartW} ${chartH}`} role="img" aria-label="Validated RMSE by depth for Bay of Bengal and Arabian Sea, against withheld ARGO profiles">
+        {rmseTicks.map(t => <line key={`v-${t}`} x1={xFor(t)} y1={marginT} x2={xFor(t)} y2={chartH - marginB} className="chart-grid-line" />)}
+        {depthTicks.map(d => <line key={`h-${d}`} x1={marginL} y1={yFor(d)} x2={chartW - marginR} y2={yFor(d)} className="chart-grid-line" />)}
+        <polyline points={toPoints(BOB_DEPTH_METRICS)} className="chart-line bob-line" />
+        <polyline points={toPoints(ARABIAN_SEA_DEPTH_METRICS)} className="chart-line as-line" />
+        {BOB_DEPTH_METRICS.map(p => <circle key={`bob-${p.depth}`} cx={xFor(p.rmse)} cy={yFor(p.depth)} r="2.6" className="chart-dot bob-dot" />)}
+        {ARABIAN_SEA_DEPTH_METRICS.map(p => <circle key={`as-${p.depth}`} cx={xFor(p.rmse)} cy={yFor(p.depth)} r="2.6" className="chart-dot as-dot" />)}
+        {rmseTicks.map(t => <text key={`vt-${t}`} x={xFor(t)} y={chartH - marginB + 18} className="chart-tick-x" textAnchor="middle">{t.toFixed(1)}</text>)}
+        {depthTicks.map(d => <text key={`ht-${d}`} x={marginL - 8} y={yFor(d) + 3} className="chart-tick-y" textAnchor="end">{d}m</text>)}
+      </svg>
+      <div className="chart-legend">
+        <span><i className="legend-swatch bob" /> BAY OF BENGAL</span>
+        <span><i className="legend-swatch as" /> ARABIAN SEA</span>
       </div>
-      <div className="plot-x-label">{kind === "depth" ? "RMSE (°C)" : "REFERENCE TEMPERATURE (°C)"}</div>
-      {kind === "scatter" && <div className="plot-y-label">PREDICTED TEMPERATURE (°C)</div>}
-      {kind === "depth" && <div className="plot-y-label">DEPTH (m)</div>}
+    </div>
+  );
+}
+
+function DepthMetricReadout({ depth }: { depth: number }) {
+  const bob = BOB_DEPTH_METRICS.find(p => p.depth === depth);
+  const as = ARABIAN_SEA_DEPTH_METRICS.find(p => p.depth === depth);
+  return (
+    <div className="depth-readout">
+      <div className="depth-readout-card">
+        <span className="panel-kicker">BAY OF BENGAL · {depth} m</span>
+        <div className="readout-values">
+          <div><span>RMSE</span><strong>{bob ? `${bob.rmse.toFixed(3)}°C` : "—"}</strong></div>
+          <div><span>CORRELATION</span><strong>{bob ? bob.corr.toFixed(3) : "—"}</strong></div>
+        </div>
+      </div>
+      <div className="depth-readout-card">
+        <span className="panel-kicker">ARABIAN SEA · {depth} m</span>
+        <div className="readout-values">
+          <div><span>RMSE</span><strong>{as ? `${as.rmse.toFixed(3)}°C` : "—"}</strong></div>
+          <div><span>CORRELATION</span><strong>{as ? as.corr.toFixed(3) : "—"}</strong></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ArgoValidationSummary() {
+  return (
+    <div className="argo-plot" aria-label="Independent ARGO validation summary">
+      <div className="plot-grid ocean-grid" />
+      <span className="map-label label-north">30°N</span>
+      <span className="map-label label-south">5°N</span>
+      <span className="map-label label-west">45°E</span>
+      <span className="map-label label-east">105°E</span>
+      <div className="argo-summary">
+        <div className="argo-summary-card">
+          <span className="panel-kicker">BAY OF BENGAL</span>
+          <strong>{formatCount(REGION_SUMMARY["BAY OF BENGAL"].n)} ARGO MEASUREMENTS</strong>
+          <div className="argo-summary-metrics"><span>RMSE <b>0.637°C</b></span><span>CORRELATION <b>0.997</b></span></div>
+        </div>
+        <div className="argo-summary-card">
+          <span className="panel-kicker">ARABIAN SEA</span>
+          <strong>{formatCount(REGION_SUMMARY["ARABIAN SEA"].n)} ARGO MEASUREMENTS</strong>
+          <div className="argo-summary-metrics"><span>RMSE <b>0.834°C</b></span><span>CORRELATION <b>0.988</b></span></div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -94,13 +192,14 @@ function DataProvenanceTable() {
 
 function ModelStatus() {
   return (
-    <div className="status-panel"><div><div className="eyebrow">OCEANEMBED MODEL STATUS</div><h2>Evaluation framework<br /><em>ready for results</em></h2></div><div className="status-list"><div><span>TRAINING</span><b>IN DEVELOPMENT</b></div><div><span>EVALUATION</span><b>PENDING TRAINED MODEL</b></div><div><span>ARGO VALIDATION</span><b>PENDING</b></div><div><span>DEPLOYMENT</span><b className="active-status">SURFACE DATA PIPELINE ACTIVE</b></div></div></div>
+    <div className="status-panel"><div><div className="eyebrow">OCEANEMBED MODEL STATUS</div><h2>Two regional models<br /><em>trained and validated</em></h2></div><div className="status-list"><div><span>TRAINING</span><b className="active-status">COMPLETE — 2 REGIONAL MODELS</b></div><div><span>EVALUATION</span><b className="active-status">COMPLETE — VS. GLORYS + ARGO</b></div><div><span>ARGO VALIDATION</span><b className="active-status">COMPLETE — 2,159,612 MEASUREMENTS</b></div><div><span>DEPLOYMENT</span><b className="active-status">5 VALIDATED PREDICTIONS LIVE ON /SOLUTION</b></div></div></div>
   );
 }
 
 export default function TechnologyPage() {
   const [selectedDepth, setSelectedDepth] = useState(0);
   const [region, setRegion] = useState("BAY OF BENGAL");
+  const summary = REGION_SUMMARY[region];
 
   return (
     <div className="technology-page">
@@ -109,9 +208,9 @@ export default function TechnologyPage() {
         <section className="tech-hero page-width">
           <div className="tech-hero-copy">
             <h1><span>FROM SURFACE</span><span>SIGNALS</span><em><span>TO SUBSURFACE</span><span>TEMPERATURE</span></em></h1>
-            <p className="hero-lede">OceanEmbed evaluates how reliably surface ocean observations can reconstruct the vertical temperature structure of the North Indian Ocean.</p>
-            <p className="hero-support">The model learns the relationship between daily surface ocean conditions and the subsurface temperature field represented by the training target. Evaluation is performed depth by depth and against independent observations to determine where the reconstruction is reliable and where uncertainty increases.</p>
-            <div className="hero-meta"><span>REGION <b>5°N–30°N · 45°E–105°E</b></span><span>GRID <b>0.25° × 0.25° · DAILY</b></span><span>STATUS <b className="pending">EVALUATION PENDING</b></span></div>
+            <p className="hero-lede">OceanEmbed reconstructs the vertical temperature structure of the North Indian Ocean from surface ocean observations alone.</p>
+            <p className="hero-support">The model learns the relationship between daily surface ocean conditions and the subsurface temperature field represented by the training target. Evaluation is performed depth by depth and against independent ARGO observations to determine where the reconstruction is reliable and where uncertainty increases.</p>
+            <div className="hero-meta"><span>REGION <b>5°N–30°N · 45°E–105°E</b></span><span>GRID <b>0.25° × 0.25° · DAILY</b></span><span>STATUS <b className="validated">VALIDATED — 2 REGIONAL MODELS</b></span></div>
           </div>
           <OceanEmbedHeroVisualization />
         </section>
@@ -125,9 +224,16 @@ export default function TechnologyPage() {
 
         <section className="dark-band">
           <div className="page-width">
-            <SectionHeading title="WHAT THE MODEL SEES">The model receives surface ocean-state information and reconstructs temperature through the upper ocean and into deeper layers.</SectionHeading>
+            <SectionHeading title="WHAT THE MODEL SEES">The model receives surface ocean-state information and reconstructs temperature through the upper ocean and into deeper layers. The two regions&rsquo; final models use different surface inputs.</SectionHeading>
             <div className="input-target-grid">
-              <div className="field-panel"><div className="panel-kicker">SURFACE INPUT</div><div className="field-list">{inputFields.map((field, index) => <div key={field}><span>0{index + 1}</span>{field}</div>)}</div><p className="panel-note">Harmonized to the standardized OceanEmbed grid before entering the model.</p></div>
+              <div className="field-panel">
+                <div className="panel-kicker">SURFACE INPUT</div>
+                <div className="field-list">
+                  {["SST", "SSH"].map((field, index) => <div key={field}><span>0{index + 1}</span>{field}<em>BOTH REGIONS</em></div>)}
+                  {["WIND STRESS CURL", "MLD", "SSS", "EDDY VORTICITY"].map((field, index) => <div key={field}><span>0{index + 3}</span>{field}<em>ARABIAN SEA ONLY</em></div>)}
+                </div>
+                <p className="panel-note">Bay of Bengal&rsquo;s final model uses SST + SSH with 5-region clustering; Arabian Sea&rsquo;s adds four more surface fields with 10-region clustering — both with bias correction.</p>
+              </div>
               <div className="field-connector"><span>DAILY<br />SURFACE<br />STATE</span><b>→</b></div>
               <div className="field-panel target-panel"><div className="panel-kicker">RECONSTRUCTION TARGET</div><div className="target-name">SUBSURFACE<br /><strong>TEMPERATURE</strong></div><div className="depth-list">{depths.map(depth => <span key={depth}>{depth} m</span>)}</div></div>
             </div>
@@ -143,33 +249,33 @@ export default function TechnologyPage() {
         <section className="evaluation-section dark-band">
           <div className="page-width">
             <SectionHeading title="HOW THE MODEL IS EVALUATED">Evaluation is performed independently of training, using temperature fields and profiles withheld from the fitting process.</SectionHeading>
-            <div className="metric-grid">{metrics.map(([short, title, text]) => <MetricBlock key={short} short={short} title={title} text={text} />)}</div>
+            <div className="metric-grid">{metrics.map(m => <MetricBlock key={m.short} {...m} />)}</div>
           </div>
         </section>
 
         <section className="chart-section page-width">
-          <SectionHeading title="PERFORMANCE THROUGH THE WATER COLUMN">Depth-wise error is expected to vary as surface constraints weaken with depth. No curve is shown until real evaluation output is available.</SectionHeading>
-          <div className="chart-shell"><ScientificChartPlaceholder kind="depth" /></div>
+          <SectionHeading title="PERFORMANCE THROUGH THE WATER COLUMN">Validated RMSE by depth, against withheld ARGO profiles. Error peaks in the thermocline and falls again in deep water for both regions.</SectionHeading>
+          <div className="chart-shell"><DepthRmseChart /></div>
           <div className="depth-scale">STANDARD DEPTHS <span>{depths.map(depth => <b key={depth}>{depth} m</b>)}</span></div>
         </section>
 
         <section className="chart-section dark-band">
           <div className="page-width">
-            <SectionHeading title="PREDICTION VS REFERENCE">A depth-selectable comparison of reconstructed and reference temperatures.</SectionHeading>
+            <SectionHeading title="RMSE & CORRELATION BY DEPTH">A depth-selectable readout of validated RMSE and correlation for both regions.</SectionHeading>
             <div className="chart-controls"><span>DEPTH SELECTOR</span>{evaluationDepths.map(depth => <button key={depth} className={selectedDepth === depth ? "selected" : ""} onClick={() => setSelectedDepth(depth)}>{depth} m</button>)}</div>
-            <div className="chart-shell"><ScientificChartPlaceholder kind="scatter" /></div>
+            <div className="chart-shell"><DepthMetricReadout depth={selectedDepth} /></div>
           </div>
         </section>
 
         <section className="argo-section page-width">
           <SectionHeading title="INDEPENDENT ARGO VALIDATION">ARGO observations provide an independent reference for assessing whether reconstructed subsurface temperature fields remain physically consistent outside the training target.</SectionHeading>
           <div className="validation-flow"><div>MODEL<br /><strong>PREDICTION</strong></div><b>+</b><div>ARGO<br /><strong>PROFILE</strong></div><b>↓</b><div>DEPTH-MATCHED<br /><strong>COMPARISON</strong></div><b>↓</b><div>RMSE / BIAS /<br /><strong>CORRELATION</strong></div></div>
-          <ScientificChartPlaceholder kind="argo" />
+          <ArgoValidationSummary />
         </section>
 
-        <section className="regional-section dark-band"><div className="page-width"><SectionHeading title="WHERE THE MODEL PERFORMS">Regional comparisons will distinguish reconstruction behavior across the intended proof-of-concept areas.</SectionHeading><div className="region-tabs">{["BAY OF BENGAL", "ARABIAN SEA"].map(item => <button key={item} className={region === item ? "selected" : ""} onClick={() => setRegion(item)}>{item}</button>)}</div><div className="region-panel"><div><span className="panel-kicker">ACTIVE REGION</span><h3>{region}</h3><p>Regional evaluation results will populate after model training and withheld-profile testing.</p></div><div className="region-metrics">{["RMSE", "BIAS", "CORRELATION", "ARGO VALIDATION COUNT"].map(item => <div key={item}><span>{item}</span><strong>—</strong><small>PENDING</small></div>)}</div></div></div></section>
+        <section className="regional-section dark-band"><div className="page-width"><SectionHeading title="WHERE THE MODEL PERFORMS">Regional comparisons distinguish reconstruction behavior across the two proof-of-concept regions.</SectionHeading><div className="region-tabs">{["BAY OF BENGAL", "ARABIAN SEA"].map(item => <button key={item} className={region === item ? "selected" : ""} onClick={() => setRegion(item)}>{item}</button>)}</div><div className="region-panel"><div><span className="panel-kicker">ACTIVE REGION</span><h3>{region}</h3><p>Final model: {summary.inputs.join(", ")} · {summary.clusters}-region clustering + bias correction.</p></div><div className="region-metrics"><div><span>RMSE</span><strong>{summary.rmse.toFixed(3)}°C</strong></div><div><span>BIAS</span><strong>—</strong><small>NOT REPORTED</small></div><div><span>CORRELATION</span><strong>{summary.correlation.toFixed(3)}</strong></div><div><span>ARGO VALIDATION COUNT</span><strong>{formatCount(summary.n)}</strong></div></div></div></div></section>
 
-        <section className="uncertainty-section page-width"><SectionHeading title="UNDERSTANDING MODEL ERROR">Reconstruction skill is not expected to be uniform with depth or location. Evaluation will identify:</SectionHeading><div className="uncertainty-list">{["Depths where surface observations strongly constrain subsurface temperature", "Regions with larger reconstruction errors", "Systematic warm or cold bias", "Degradation of skill with increasing depth", "Differences between the Arabian Sea and Bay of Bengal"].map((item, index) => <div key={item}><span>0{index + 1}</span>{item}</div>)}</div></section>
+        <section className="uncertainty-section page-width"><SectionHeading title="UNDERSTANDING MODEL ERROR">Reconstruction skill is not uniform with depth or location. Validation against ARGO shows:</SectionHeading><div className="uncertainty-list">{uncertaintyFindings.map((item, index) => <div key={item}><span>0{index + 1}</span>{item}</div>)}</div></section>
 
         <section className="provenance-section dark-band"><div className="page-width"><SectionHeading title="DATA USED FOR EVALUATION">The evaluation design separates the model training target, independent validation, and surface input fields.</SectionHeading><DataProvenanceTable /></div></section>
 
@@ -199,7 +305,7 @@ const styles = `
   .hero-support { max-width: 680px; margin-top: .75rem; color: rgba(222, 244, 252, .72); font-size: .81rem; line-height: 1.55; }
   .hero-meta { display: flex; flex-wrap: wrap; gap: 1.1rem 1.5rem; margin-top: 1.65rem; color: rgba(174, 231, 246, .65); }
   .hero-meta b { color: #eaf7ff; margin-left: .45rem; letter-spacing: .06em; font-weight: 500; }
-  .pending { color: #f3c98b !important; }
+  .validated { color: #7ce0d0 !important; }
   .hero-visual { width: 100%; max-width: 560px; justify-self: end; }
   .hero-visual svg { display: block; width: 100%; height: auto; overflow: visible; }
   .hero-visual-labels text, .observation-line text, .depth-label, .reconstruction-label text { fill: #eaf7ff; font: 600 9px var(--font-public-sans), sans-serif; letter-spacing: 1.5px; }
@@ -238,6 +344,7 @@ const styles = `
   .field-list { margin-top: 1.4rem; border-top: 1px solid rgba(174, 231, 246, .14); }
   .field-list div { display: flex; gap: 1rem; align-items: center; padding: .78rem 0; border-bottom: 1px solid rgba(174, 231, 246, .1); color: #eaf7ff; font: 500 .82rem var(--font-space-grotesk), sans-serif; letter-spacing: .06em; }
   .field-list span { width: 22px; color: #7ce0d0; font-size: .68rem; }
+  .field-list em { margin-left: auto; font-style: normal; font-size: .58rem; letter-spacing: .08em; color: rgba(174, 231, 246, .5); white-space: nowrap; }
   .panel-note { margin-top: 1.4rem; color: rgba(222, 244, 252, .58); font-size: .78rem; line-height: 1.5; }
   .field-connector { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; color: #7ce0d0; text-align: center; font: 600 .6rem/1.4 var(--font-public-sans), sans-serif; letter-spacing: .12em; }
   .field-connector b { font-size: 2rem; font-weight: 400; }
@@ -259,23 +366,30 @@ const styles = `
   .metric-block p { min-height: 76px; margin-top: .8rem; color: rgba(222, 244, 252, .6); font-size: .8rem; line-height: 1.55; }
   .metric-value { margin-top: 1rem; color: rgba(234, 247, 255, .9); font: 500 2rem var(--font-space-grotesk), sans-serif; }
   .metric-status { display: block; margin-top: .3rem; color: rgba(243, 201, 139, .8); font-size: .57rem; letter-spacing: .08em; }
+  .metric-values { display: flex; flex-direction: column; gap: .5rem; margin-top: 1rem; }
+  .metric-values div { display: flex; align-items: baseline; justify-content: space-between; gap: .6rem; }
+  .metric-values span { color: rgba(174, 231, 246, .6); font-size: .6rem; letter-spacing: .08em; }
+  .metric-values strong { color: #7ce0d0; font: 500 1.15rem var(--font-space-grotesk), sans-serif; }
   .chart-shell { padding: 1.5rem; border: 1px solid rgba(174, 231, 246, .18); background: rgba(1, 9, 18, .38); }
-  .scientific-plot { position: relative; min-height: 410px; display: flex; padding: 1.5rem 1.5rem 3rem 3.1rem; }
-  .plot-y-axis { position: absolute; top: 1.5rem; bottom: 3rem; left: 0; display: flex; flex-direction: column; justify-content: space-between; color: rgba(222, 244, 252, .52); font: .68rem var(--font-space-grotesk), sans-serif; }
-  .plot-body { position: relative; flex: 1; border-left: 1px solid rgba(174, 231, 246, .4); border-bottom: 1px solid rgba(174, 231, 246, .4); }
-  .plot-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(174, 231, 246, .11) 1px, transparent 1px), linear-gradient(90deg, rgba(174, 231, 246, .11) 1px, transparent 1px); background-size: 20% 20%; }
-  .plot-x-ticks { position: absolute; left: 0; right: 0; bottom: -1.4rem; display: flex; justify-content: space-between; color: rgba(222, 244, 252, .52); font: .68rem var(--font-space-grotesk), sans-serif; }
-  .plot-x-label, .plot-y-label { position: absolute; color: #7ce0d0; font: 600 .62rem var(--font-public-sans), sans-serif; letter-spacing: .12em; }
-  .plot-x-label { bottom: .3rem; left: 50%; transform: translateX(-50%); }
-  .plot-y-label { top: 50%; left: -1.2rem; transform: rotate(-90deg) translateX(-50%); transform-origin: left top; }
-  .one-to-one { position: absolute; left: 0; bottom: 0; width: 100%; height: 100%; overflow: hidden; }
-  .one-to-one::after { content: ""; position: absolute; left: -10%; bottom: -1px; width: 120%; height: 1px; background: rgba(124, 224, 208, .65); transform: rotate(-35deg); transform-origin: left center; }
-  .one-to-one span { position: absolute; top: 18%; right: 8%; color: rgba(124, 224, 208, .6); font-size: .68rem; }
-  .empty-state { position: absolute; inset: 0; z-index: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: .6rem; padding: 1rem; text-align: center; }
-  .empty-state strong { color: #aee7f6; font: 600 .76rem var(--font-space-grotesk), sans-serif; letter-spacing: .12em; }
-  .empty-state span { max-width: 360px; color: rgba(222, 244, 252, .55); font-size: .75rem; line-height: 1.55; }
-  .depth-scale { display: flex; gap: 1rem; margin-top: 1.2rem; color: rgba(174, 231, 246, .6); }
-  .depth-scale span { display: flex; flex-wrap: wrap; gap: .55rem 1rem; color: rgba(222, 244, 252, .55); font-weight: 400; letter-spacing: .02em; }
+  .depth-rmse-chart { display: flex; flex-direction: column; gap: 1rem; }
+  .depth-rmse-chart svg { display: block; width: 100%; height: auto; }
+  .chart-grid-line { stroke: rgba(174, 231, 246, .12); stroke-width: 1; }
+  .chart-line { fill: none; stroke-width: 2; }
+  .bob-line, .bob-dot { stroke: #7ce0d0; }
+  .as-line, .as-dot { stroke: #f3c98b; }
+  .bob-dot, .as-dot { fill: #06213a; stroke-width: 2; }
+  .chart-tick-x, .chart-tick-y { fill: rgba(222, 244, 252, .55); font: .6rem var(--font-space-grotesk), sans-serif; }
+  .chart-legend { display: flex; gap: 1.5rem; }
+  .chart-legend span { display: flex; align-items: center; gap: .5rem; color: rgba(222, 244, 252, .7); font-size: .68rem; letter-spacing: .06em; }
+  .legend-swatch { display: inline-block; width: 14px; height: 3px; border-radius: 2px; }
+  .legend-swatch.bob { background: #7ce0d0; }
+  .legend-swatch.as { background: #f3c98b; }
+  .depth-readout { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .depth-readout-card { padding: 1.5rem; border: 1px solid rgba(174, 231, 246, .16); background: rgba(1, 9, 18, .3); }
+  .readout-values { display: flex; gap: 2rem; margin-top: 1.2rem; }
+  .readout-values div { display: flex; flex-direction: column; gap: .4rem; }
+  .readout-values span { color: rgba(174, 231, 246, .6); font-size: .62rem; letter-spacing: .08em; }
+  .readout-values strong { color: #fff; font: 500 1.6rem var(--font-space-grotesk), sans-serif; }
   .chart-controls { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin: -1rem 0 1.5rem; color: rgba(174, 231, 246, .68); }
   .chart-controls button, .region-tabs button { padding: .6rem .8rem; border: 1px solid rgba(174, 231, 246, .2); background: transparent; color: rgba(222, 244, 252, .7); font: 600 .64rem var(--font-public-sans), sans-serif; letter-spacing: .08em; cursor: pointer; }
   .chart-controls button.selected, .region-tabs button.selected { border-color: #7ce0d0; color: #061c2d; background: #7ce0d0; }
@@ -286,13 +400,19 @@ const styles = `
   .ocean-grid { opacity: .75; background-size: 8% 20%; }
   .map-label { position: absolute; z-index: 1; color: rgba(174, 231, 246, .5); font: .65rem var(--font-space-grotesk), sans-serif; }
   .label-north { top: 1rem; left: 1rem; }.label-south { bottom: 1rem; left: 1rem; }.label-west { bottom: 1rem; left: 15%; }.label-east { bottom: 1rem; right: 10%; }
+  .argo-summary { position: absolute; inset: 0; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 1.5rem; flex-wrap: wrap; padding: 1.5rem; }
+  .argo-summary-card { padding: 1.5rem 1.75rem; border: 1px solid rgba(174, 231, 246, .22); background: rgba(1, 9, 18, .78); backdrop-filter: blur(6px); min-width: 220px; }
+  .argo-summary-card strong { display: block; margin-top: .6rem; color: #fff; font: 500 1.15rem var(--font-space-grotesk), sans-serif; }
+  .argo-summary-metrics { display: flex; gap: 1.2rem; margin-top: 1rem; }
+  .argo-summary-metrics span { color: rgba(222, 244, 252, .6); font-size: .68rem; letter-spacing: .06em; }
+  .argo-summary-metrics b { display: block; margin-top: .3rem; color: #7ce0d0; font: 500 1.1rem var(--font-space-grotesk), sans-serif; }
   .region-tabs { display: flex; gap: .5rem; margin-bottom: 1.5rem; }
   .region-panel { display: grid; grid-template-columns: 1fr 2fr; gap: 3rem; padding: 2rem; border: 1px solid rgba(174, 231, 246, .17); background: rgba(1, 9, 18, .4); }
   .region-panel h3 { margin-top: .7rem; color: #fff; font-size: 1.5rem; }.region-panel p { max-width: 280px; margin-top: .8rem; color: rgba(222, 244, 252, .58); font-size: .82rem; line-height: 1.55; }
   .region-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }.region-metrics div { display: flex; flex-direction: column; gap: .45rem; padding-left: 1rem; border-left: 1px solid rgba(174, 231, 246, .18); }.region-metrics span { color: rgba(174, 231, 246, .64); font-size: .63rem; letter-spacing: .1em; }.region-metrics strong { color: #fff; font: 1.5rem var(--font-space-grotesk), sans-serif; }.region-metrics small { color: #f3c98b; font-size: .58rem; letter-spacing: .08em; }
-  .uncertainty-list { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid rgba(174, 231, 246, .18); }.uncertainty-list div { min-height: 150px; padding: 1.2rem 1rem 1rem 0; border-right: 1px solid rgba(174, 231, 246, .14); color: rgba(222, 244, 252, .74); font: 500 .87rem/1.45 var(--font-space-grotesk), sans-serif; }.uncertainty-list div + div { padding-left: 1rem; }.uncertainty-list span { display: block; margin-bottom: 2rem; color: #7ce0d0; font-size: .68rem; }
+  .uncertainty-list { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid rgba(174, 231, 246, .18); }.uncertainty-list div { min-height: 190px; padding: 1.2rem 1rem 1rem 0; border-right: 1px solid rgba(174, 231, 246, .14); color: rgba(222, 244, 252, .74); font: 500 .8rem/1.45 var(--font-space-grotesk), sans-serif; }.uncertainty-list div + div { padding-left: 1rem; }.uncertainty-list span { display: block; margin-bottom: 2rem; color: #7ce0d0; font-size: .68rem; }
   .table-wrap { overflow-x: auto; border: 1px solid rgba(174, 231, 246, .18); }.table-wrap table { width: 100%; min-width: 760px; border-collapse: collapse; text-align: left; }.table-wrap th, .table-wrap td { padding: 1.1rem 1rem; border-bottom: 1px solid rgba(174, 231, 246, .12); }.table-wrap th { color: #7ce0d0; font-size: .63rem; }.table-wrap td { color: rgba(222, 244, 252, .72); font-size: .83rem; }.table-wrap tr:last-child td { border-bottom: 0; }.role-target, .role-validation, .role-input { font-size: .6rem; letter-spacing: .08em; }.role-target { color: #f3c98b; }.role-validation { color: #c5a6ef; }.role-input { color: #7ce0d0; }
   .status-section { padding-bottom: 8rem; }.status-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; padding: 2.2rem; border: 1px solid rgba(174, 231, 246, .22); background: rgba(1, 9, 18, .4); }.status-panel h2 { margin-top: .9rem; color: #fff; font-size: clamp(1.8rem, 4vw, 3.2rem); line-height: 1.02; }.status-list { border-top: 1px solid rgba(174, 231, 246, .17); }.status-list div { display: flex; justify-content: space-between; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid rgba(174, 231, 246, .12); }.status-list b { color: #f3c98b; font: 500 .65rem var(--font-space-grotesk), sans-serif; letter-spacing: .07em; text-align: right; }.status-list .active-status { color: #7ce0d0; }
-  @media (max-width: 900px) { .tech-hero { min-height: 580px; padding-top: 2rem; grid-template-columns: minmax(0, 1fr) minmax(260px, .82fr); gap: 1.5rem; }.hero-visual { max-width: 420px; }.pipeline { display: flex; overflow-x: auto; gap: .8rem; padding: .3rem .2rem .8rem; scroll-snap-type: x mandatory; scrollbar-width: thin; }.pipeline-item { flex: 0 0 min(72vw, 260px); scroll-snap-align: start; }.pipeline-card { min-height: 265px; }.pipeline-arrow { display: none; }.pipeline-progress { display: flex; justify-content: center; gap: .35rem; margin-top: .7rem; }.pipeline-progress span { width: 18px; height: 2px; background: rgba(174, 231, 246, .25); }.pipeline-progress span.active { background: #7ce0d0; }.input-target-grid { grid-template-columns: 1fr; }.field-connector { flex-direction: row; padding: .5rem; }.field-connector b { transform: rotate(90deg); }.architecture-diagram { grid-template-columns: 1fr; }.architecture-node { min-height: 90px; border-right: 0; border-bottom: 1px solid rgba(174, 231, 246, .16); }.architecture-node:last-child { border-bottom: 0; }.architecture-node b { top: auto; right: 50%; bottom: -.65rem; transform: rotate(90deg); }.metric-grid { grid-template-columns: repeat(2, 1fr); }.region-panel, .status-panel { grid-template-columns: 1fr; gap: 2rem; }.uncertainty-list { grid-template-columns: repeat(2, 1fr); }.uncertainty-list div:nth-child(2n) { border-right: 0; } }
-  @media (max-width: 620px) { .page-width { width: min(100% - 2rem, 1240px); }.technology-page main { padding-top: 64px; }.tech-hero { min-height: auto; padding: 3.5rem 0 4rem; grid-template-columns: 1fr; gap: 2.5rem; align-items: start; }.hero-visual { max-width: 520px; justify-self: center; }.hero-meta { flex-direction: column; gap: .8rem; }.pipeline-meta { grid-template-columns: 1fr; gap: .8rem; }.metric-grid { grid-template-columns: 1fr; }.metric-block { min-height: 210px; }.validation-flow { grid-template-columns: 1fr; gap: .55rem; }.validation-flow b { transform: rotate(90deg); }.scientific-plot { min-height: 330px; padding-left: 2.7rem; }.depth-scale { flex-direction: column; }.region-metrics { grid-template-columns: repeat(2, 1fr); row-gap: 1.2rem; }.uncertainty-list { grid-template-columns: 1fr; }.uncertainty-list div, .uncertainty-list div + div { min-height: auto; padding: 1rem 0; border-right: 0; }.uncertainty-list span { margin-bottom: .6rem; }.status-list div { flex-direction: column; gap: .45rem; }.status-list b { text-align: left; } }
+  @media (max-width: 900px) { .tech-hero { min-height: 580px; padding-top: 2rem; grid-template-columns: minmax(0, 1fr) minmax(260px, .82fr); gap: 1.5rem; }.hero-visual { max-width: 420px; }.pipeline { display: flex; overflow-x: auto; gap: .8rem; padding: .3rem .2rem .8rem; scroll-snap-type: x mandatory; scrollbar-width: thin; }.pipeline-item { flex: 0 0 min(72vw, 260px); scroll-snap-align: start; }.pipeline-card { min-height: 265px; }.pipeline-arrow { display: none; }.pipeline-progress { display: flex; justify-content: center; gap: .35rem; margin-top: .7rem; }.pipeline-progress span { width: 18px; height: 2px; background: rgba(174, 231, 246, .25); }.pipeline-progress span.active { background: #7ce0d0; }.input-target-grid { grid-template-columns: 1fr; }.field-connector { flex-direction: row; padding: .5rem; }.field-connector b { transform: rotate(90deg); }.architecture-diagram { grid-template-columns: 1fr; }.architecture-node { min-height: 90px; border-right: 0; border-bottom: 1px solid rgba(174, 231, 246, .16); }.architecture-node:last-child { border-bottom: 0; }.architecture-node b { top: auto; right: 50%; bottom: -.65rem; transform: rotate(90deg); }.metric-grid { grid-template-columns: repeat(2, 1fr); }.region-panel, .status-panel { grid-template-columns: 1fr; gap: 2rem; }.uncertainty-list { grid-template-columns: repeat(2, 1fr); }.uncertainty-list div:nth-child(2n) { border-right: 0; }.depth-readout { grid-template-columns: 1fr; } }
+  @media (max-width: 620px) { .page-width { width: min(100% - 2rem, 1240px); }.technology-page main { padding-top: 64px; }.tech-hero { min-height: auto; padding: 3.5rem 0 4rem; grid-template-columns: 1fr; gap: 2.5rem; align-items: start; }.hero-visual { max-width: 520px; justify-self: center; }.hero-meta { flex-direction: column; gap: .8rem; }.pipeline-meta { grid-template-columns: 1fr; gap: .8rem; }.metric-grid { grid-template-columns: 1fr; }.metric-block { min-height: 210px; }.validation-flow { grid-template-columns: 1fr; gap: .55rem; }.validation-flow b { transform: rotate(90deg); }.depth-scale { flex-direction: column; }.region-metrics { grid-template-columns: repeat(2, 1fr); row-gap: 1.2rem; }.uncertainty-list { grid-template-columns: 1fr; }.uncertainty-list div, .uncertainty-list div + div { min-height: auto; padding: 1rem 0; border-right: 0; }.uncertainty-list span { margin-bottom: .6rem; }.status-list div { flex-direction: column; gap: .45rem; }.status-list b { text-align: left; }.argo-summary { flex-direction: column; }.argo-summary-card { width: 100%; box-sizing: border-box; } }
 `;
