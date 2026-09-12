@@ -37,6 +37,38 @@ function classifyRegion(lat, lon) {
   return null;
 }
 
+// Standard sequential cool->warm temperature scale (dark blue -> blue ->
+// cyan -> pale green/yellow -> orange -> red) for the real SST heatmap
+// overlay. This is visual context only, never a model prediction — see
+// regional_sst_grid.json's own "raw satellite reading" framing.
+const SST_COLOR_STOPS = [
+  [8, 37, 103],
+  [40, 108, 184],
+  [98, 181, 210],
+  [186, 222, 165],
+  [244, 216, 106],
+  [232, 138, 59],
+  [178, 45, 45],
+];
+
+function interpolateSstColor(t) {
+  const n = SST_COLOR_STOPS.length - 1;
+  const scaled = Math.min(Math.max(t, 0), 1) * n;
+  const i = Math.min(Math.floor(scaled), n - 1);
+  const frac = scaled - i;
+  const c1 = SST_COLOR_STOPS[i];
+  const c2 = SST_COLOR_STOPS[i + 1];
+  return [
+    Math.round(c1[0] + (c2[0] - c1[0]) * frac),
+    Math.round(c1[1] + (c2[1] - c1[1]) * frac),
+    Math.round(c1[2] + (c2[2] - c1[2]) * frac),
+  ];
+}
+
+const SST_LEGEND_GRADIENT_CSS = `linear-gradient(90deg, ${SST_COLOR_STOPS
+  .map((c, i) => `rgb(${c[0]},${c[1]},${c[2]}) ${((i / (SST_COLOR_STOPS.length - 1)) * 100).toFixed(1)}%`)
+  .join(', ')})`;
+
 export default function RealOceanMap({ depth, isSurface, selectedId, setSelectedId, arbitraryPoint, setArbitraryPoint, locations }) {
   const [mapPath, setMapPath] = useState('');
   const [hoverMarker, setHoverMarker] = useState(null);
@@ -46,6 +78,12 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
   const [chooserOptions, setChooserOptions] = useState(null);
   const [coverageNotice, setCoverageNotice] = useState(null);
   const noticeTimeoutRef = useRef(null);
+
+  // Real, pre-fetched SST grid — visual context only, never a prediction.
+  // Loaded once; a failure here must never block the rest of the map.
+  const [heatmapGrid, setHeatmapGrid] = useState(null);
+  const [heatmapImageUrl, setHeatmapImageUrl] = useState(null);
+  const [heatmapVisible, setHeatmapVisible] = useState(true);
 
   const svgRef = useRef(null);
   const projectionRef = useRef(null);
@@ -72,6 +110,84 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
       })
       .catch(e => console.error("Could not load world map", e));
   }, []);
+
+  // Load the real, static SST grid once. Never fetched again (no re-fetch on
+  // click, no polling) — it's a periodically-refreshed snapshot, not a live
+  // layer. A failure here is caught and logged; the rest of the map (markers,
+  // clicking, live predictions) must keep working regardless.
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/data/regional_sst_grid.json')
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        if (cancelled) return;
+        let min = Infinity, max = -Infinity;
+        for (const row of data.values) {
+          for (const v of row) {
+            if (v === null || v === undefined) continue;
+            if (v < min) min = v;
+            if (v > max) max = v;
+          }
+        }
+        if (!Number.isFinite(min) || !Number.isFinite(max)) throw new Error('Grid has no non-null values');
+        setHeatmapGrid({ ...data, min, max });
+      })
+      .catch(e => console.error('Could not load regional SST heatmap — continuing without it:', e));
+    return () => { cancelled = true; };
+  }, []);
+
+  // Rasterize the grid to an offscreen canvas once both the grid and the
+  // projection are ready, then use the result as a single <image> overlay —
+  // far cheaper than one SVG element per cell for a 100x220 grid, and (via
+  // pointer-events: none on the <image> itself, set below) never intercepts
+  // a click, so markers/click-anywhere/land-mass detection are untouched.
+  useEffect(() => {
+    if (!heatmapGrid || !mapPath || !projectionRef.current) return;
+
+    const { lat_min, lon_min, lat_step, lon_step, values, min, max } = heatmapGrid;
+    const rows = values.length;
+    const cols = rows > 0 ? values[0].length : 0;
+    if (rows === 0 || cols === 0) return;
+
+    const bleed = 60;
+    const canvas = document.createElement('canvas');
+    canvas.width = 800 + bleed * 2;
+    canvas.height = 500 + bleed * 2;
+    const ctx = canvas.getContext('2d');
+    ctx.translate(bleed, bleed);
+
+    const range = max - min || 1;
+    const halfLat = lat_step / 2;
+    const halfLon = lon_step / 2;
+
+    for (let i = 0; i < rows; i++) {
+      const lat = lat_min + i * lat_step;
+      const row = values[i];
+      for (let j = 0; j < cols; j++) {
+        const value = row[j];
+        if (value === null || value === undefined) continue; // land/missing — transparent, not colored
+
+        const lon = lon_min + j * lon_step;
+        const tl = projectionRef.current([lon - halfLon, lat + halfLat]);
+        const br = projectionRef.current([lon + halfLon, lat - halfLat]);
+        if (!tl || !br) continue;
+
+        const [r, g, b] = interpolateSstColor((value - min) / range);
+        ctx.fillStyle = `rgba(${r},${g},${b},0.72)`;
+
+        const x0 = Math.min(tl[0], br[0]);
+        const y0 = Math.min(tl[1], br[1]);
+        const w = Math.abs(br[0] - tl[0]);
+        const h = Math.abs(br[1] - tl[1]);
+        ctx.fillRect(x0, y0, w + 0.8, h + 0.8); // +0.8 avoids subpixel seams between cells
+      }
+    }
+
+    setHeatmapImageUrl(canvas.toDataURL());
+  }, [heatmapGrid, mapPath]);
 
   useEffect(() => {
     async function loadResults() {
@@ -217,6 +333,15 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
         <button>+</button>
         <button>−</button>
         <button className="reset">RESET</button>
+        {heatmapGrid && (
+          <button
+            className={`heatmap-toggle ${heatmapVisible ? 'active' : ''}`}
+            onClick={() => setHeatmapVisible(v => !v)}
+            title={heatmapVisible ? 'Hide sea surface temperature overlay' : 'Show sea surface temperature overlay'}
+          >
+            SST
+          </button>
+        )}
       </div>
 
       <div className="map-canvas">
@@ -256,6 +381,18 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
            {/* Topographical Path for Continents */}
            {mapPath && (
              <path d={mapPath} className="land-mass" />
+           )}
+
+           {/* Real SST heatmap — visual context only, never a prediction.
+               pointer-events: none so it can never intercept a click; markers,
+               the click-anywhere layer, and land-mass detection all sit
+               logically and visually above it, untouched. */}
+           {heatmapVisible && heatmapImageUrl && (
+             <image
+               href={heatmapImageUrl}
+               x={-60} y={-60} width={800 + 120} height={500 + 120}
+               style={{ pointerEvents: 'none' }}
+             />
            )}
 
            {/* The 5 real model-output locations */}
@@ -335,6 +472,22 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
 
         </svg>
       </div>
+
+      {/* Legend + caption — only shown while the heatmap itself is visible
+          and loaded; both are meaningless (and would just be clutter) with
+          the layer hidden or absent. Not a model output — labeled as such. */}
+      {heatmapGrid && heatmapVisible && (
+        <div className="map-legend">
+          <div className="legend-caption">
+            SEA SURFACE TEMPERATURE — {heatmapGrid.date}, VIA SATELLITE (COPERNICUS MARINE)
+          </div>
+          <div className="legend-bar-row">
+            <span className="legend-tick">{heatmapGrid.min.toFixed(1)}°C</span>
+            <div className="legend-gradient" style={{ background: SST_LEGEND_GRADIENT_CSS }} />
+            <span className="legend-tick">{heatmapGrid.max.toFixed(1)}°C</span>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .ocean-map-container {
@@ -444,6 +597,62 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
 
         .chooser-option:hover rect {
           fill: rgba(120, 203, 233, 0.22);
+        }
+
+        .heatmap-toggle {
+          font-size: 0.55rem !important;
+          letter-spacing: 0.08em;
+          font-weight: 600;
+        }
+
+        .heatmap-toggle.active {
+          background: rgba(120, 203, 233, 0.22);
+          border-color: #7ce0d0;
+          color: #fff;
+        }
+
+        .map-legend {
+          position: absolute;
+          bottom: 1.5rem;
+          left: 1.5rem;
+          z-index: 10;
+          max-width: 260px;
+          background: rgba(4, 21, 38, 0.85);
+          backdrop-filter: blur(4px);
+          border: 1px solid rgba(120, 203, 233, 0.2);
+          border-radius: 2px;
+          padding: 0.7rem 0.9rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .legend-caption {
+          font-family: var(--font-public-sans), sans-serif;
+          font-size: 0.55rem;
+          letter-spacing: 0.05em;
+          line-height: 1.4;
+          color: rgba(238, 250, 255, 0.75);
+        }
+
+        .legend-bar-row {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .legend-tick {
+          font-family: var(--font-space-grotesk), sans-serif;
+          font-size: 0.62rem;
+          color: #eefaff;
+          white-space: nowrap;
+        }
+
+        .legend-gradient {
+          flex: 1;
+          height: 8px;
+          border-radius: 2px;
+          min-width: 80px;
         }
       `}</style>
     </div>
