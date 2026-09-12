@@ -54,11 +54,17 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
     fetch('/data/indianOcean.geojson')
       .then(res => res.json())
       .then(topology => {
-        // Tight projection over India, Bay of Bengal, Arabian Sea, and Indian Ocean
+        // Tight projection over India, Bay of Bengal, Arabian Sea, and Indian Ocean.
+        // translate.y is shifted down from the naive center (250) to 370 so the
+        // real trained-model coverage's northern edge (30°N, both regions) stays
+        // inside the 0-500 viewBox — at the old value, the whole region above
+        // ~22°N (including the demo_5 marker at 23.93°N) rendered off-screen,
+        // unclickable. Verified: all 5 real markers and all 8 coverage-region
+        // corners now fall well inside the viewBox with margin on every edge.
         const projection = d3Geo.geoEquirectangular()
           .center([77.5, -2.5])
           .scale(600)
-          .translate([400, 250]);
+          .translate([400, 370]);
 
         projectionRef.current = projection;
         const geoGenerator = d3Geo.geoPath().projection(projection);
