@@ -1,7 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ModelResultsProvider } from '@/data/ModelResultsProvider';
+
+// The FastAPI live-prediction backend (backend/main.py). Not part of the
+// Next.js app — must be running separately (uvicorn main:app --port 8000).
+const LIVE_API_BASE = 'http://localhost:8000';
 
 // Real depths from the trained model's output (identical across all 5
 // demo points) — used as a fallback before a result has loaded.
@@ -23,6 +27,15 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
   const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Live prediction — entirely separate, opt-in state. Never touches the
+  // historical `result` above; the 5 offline points keep working exactly as
+  // before regardless of what happens here.
+  const [liveSteps, setLiveSteps] = useState([]);
+  const [liveResult, setLiveResult] = useState(null);
+  const [liveError, setLiveError] = useState(null);
+  const [liveLoading, setLiveLoading] = useState(false);
+  const liveSourceRef = useRef(null);
+
   useEffect(() => {
     let cancelled = false;
     async function fetchResult() {
@@ -35,6 +48,55 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
     fetchResult();
     return () => { cancelled = true; };
   }, [selectedId]);
+
+  // Switching points cancels any in-flight live request and clears its state -
+  // a live result for point A must never linger while point B is selected.
+  useEffect(() => {
+    liveSourceRef.current?.close();
+    liveSourceRef.current = null;
+    setLiveSteps([]);
+    setLiveResult(null);
+    setLiveError(null);
+    setLiveLoading(false);
+  }, [selectedId]);
+
+  // Close the connection if the panel unmounts mid-stream.
+  useEffect(() => () => liveSourceRef.current?.close(), []);
+
+  function getLivePrediction() {
+    if (!result?.location) return;
+    const { lat, lon } = result.location;
+
+    liveSourceRef.current?.close();
+    setLiveSteps([]);
+    setLiveResult(null);
+    setLiveError(null);
+    setLiveLoading(true);
+
+    const source = new EventSource(`${LIVE_API_BASE}/api/live-predict/stream?lat=${lat}&lon=${lon}`);
+    liveSourceRef.current = source;
+
+    source.onmessage = (event) => {
+      const update = JSON.parse(event.data);
+      if (update.step === 'error') {
+        setLiveError(update.error || 'Live prediction failed.');
+        setLiveLoading(false);
+        source.close();
+      } else if (update.done) {
+        setLiveResult(update.result);
+        setLiveLoading(false);
+        source.close();
+      } else {
+        setLiveSteps((prev) => [...prev, update.step]);
+      }
+    };
+
+    source.onerror = () => {
+      setLiveError('Could not reach the live prediction service. Is the backend running on localhost:8000?');
+      setLiveLoading(false);
+      source.close();
+    };
+  }
 
   const depthsM = result?.profile?.depths_m || DEFAULT_DEPTHS_M;
   const clampedDepthIndex = Math.min(depthIndex, depthsM.length - 1);
@@ -60,6 +122,24 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
   // with a dot marking the predicted curve at that depth.
   const trackerY = depthValueM * 0.04;
   const trackerX = Number.isFinite(predictedTemp) ? (predictedTemp - 5) * 4 : 5;
+
+  // Live result derivations — same chart math as the historical profile
+  // above, reusing the shared depth selector. No Argo curve: there isn't one.
+  const liveDepthsM = liveResult?.profile?.depths_m || DEFAULT_DEPTHS_M;
+  const liveClampedDepthIndex = Math.min(depthIndex, liveDepthsM.length - 1);
+  const livePredictedTemp = liveResult?.profile?.predicted_temp_c?.[liveClampedDepthIndex];
+  const livePredictedPoints = liveResult ? toPoints(liveResult.profile.depths_m, liveResult.profile.predicted_temp_c) : '';
+  const liveTrackerY = liveDepthsM[liveClampedDepthIndex] * 0.04;
+  const liveTrackerX = Number.isFinite(livePredictedTemp) ? (livePredictedTemp - 5) * 4 : 5;
+  const livePresentSurfaceFields = liveResult
+    ? SURFACE_FIELDS.filter((f) => liveResult.surface_state[f.key] !== undefined)
+    : [];
+  // Each surface variable can lag by a different number of real days (SST/SSH
+  // ~2 days, SSS ~7+) - show every variable's real fetch date rather than one
+  // misleading "today" label.
+  const liveDateLabel = liveResult?.data_dates
+    ? Object.entries(liveResult.data_dates).map(([k, v]) => `${k.toUpperCase()} ${v}`).join(' · ')
+    : '';
 
   return (
     <div className="analysis-panel">
@@ -221,6 +301,86 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
               <span className="bound">{depthsM[depthsM.length - 1]}m</span>
             </div>
           </>
+        )}
+      </div>
+
+      <hr className="divider" />
+
+      {/* Live Prediction — opt-in, real-time. Fetches today's real satellite
+          data and runs it through the actual trained model. Additive only:
+          nothing above this depends on it, and it never touches `result`. */}
+      <div className="panel-section live-section">
+        <div className="section-row">
+          <div className="section-label">LIVE PREDICTION</div>
+          {!liveLoading && (
+            <button className="live-btn" onClick={getLivePrediction} disabled={!result?.location}>
+              {liveResult || liveError ? 'RUN AGAIN' : 'GET LIVE PREDICTION'}
+            </button>
+          )}
+        </div>
+
+        {liveSteps.length > 0 && (
+          <ul className="live-steps">
+            {liveSteps.map((step, i) => {
+              const isLastStep = i === liveSteps.length - 1;
+              let stateClass = 'done';
+              if (isLastStep) {
+                if (liveError) stateClass = 'failed';
+                else if (liveLoading) stateClass = 'active';
+              }
+              return (
+                <li key={i} className={stateClass}>
+                  <span className="live-step-icon" />
+                  {step}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {liveError && (
+          <div className="live-error">LIVE PREDICTION FAILED — {liveError}</div>
+        )}
+
+        {liveResult && (
+          <div className="live-result">
+            <div className="live-badge">
+              LIVE — {liveDateLabel} — NOT YET VALIDATED AGAINST ARGO
+            </div>
+
+            <div className="metrics-grid" style={{ marginTop: '0.7rem' }}>
+              <div className="metric">
+                <span className="m-label">TEMPERATURE</span>
+                <span className="m-val">{Number.isFinite(livePredictedTemp) ? `${livePredictedTemp.toFixed(2)}°C` : '—'}</span>
+                <span className="metric-source">AT {liveDepthsM[liveClampedDepthIndex]}m · NO ARGO COMPARISON YET</span>
+              </div>
+            </div>
+
+            {livePresentSurfaceFields.length > 0 && (
+              <div className="metrics-grid" style={{ marginTop: '0.7rem' }}>
+                {livePresentSurfaceFields.map((f) => (
+                  <div className="metric" key={f.key}>
+                    <span className="m-label">{f.label}</span>
+                    <span className="m-val">{f.format(liveResult.surface_state[f.key])}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="profile-chart" style={{ marginTop: '0.8rem' }}>
+              <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="chart-svg">
+                <line x1="0" y1="10" x2="100" y2="10" stroke="#15799e" strokeWidth="0.2" opacity="0.3" />
+                <line x1="0" y1="20" x2="100" y2="20" stroke="#15799e" strokeWidth="0.2" opacity="0.3" />
+                <line x1="0" y1="30" x2="100" y2="30" stroke="#15799e" strokeWidth="0.2" opacity="0.3" />
+                <polyline points={livePredictedPoints} fill="none" stroke="#7ce0d0" strokeWidth="1.5" />
+                <line x1="0" y1={liveTrackerY} x2="100" y2={liveTrackerY} stroke="#fff" strokeWidth="0.4" strokeDasharray="1 1" opacity="0.6" />
+                <circle cx={liveTrackerX} cy={liveTrackerY} r="2" fill="#fff" />
+              </svg>
+            </div>
+            <div className="profile-legend">
+              <span><i className="legend-swatch predicted" /> LIVE PREDICTED (NO ARGO YET)</span>
+            </div>
+          </div>
         )}
       </div>
 
@@ -494,6 +654,123 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
           font-family: var(--font-space-grotesk), sans-serif;
           font-size: 1rem;
           font-weight: 500;
+        }
+
+        .live-btn {
+          background: rgba(120, 203, 233, 0.12);
+          border: 1px solid rgba(120, 203, 233, 0.35);
+          color: #7ce0d0;
+          font-family: var(--font-space-grotesk), sans-serif;
+          font-size: 0.62rem;
+          font-weight: 600;
+          letter-spacing: 0.08em;
+          padding: 0.4rem 0.7rem;
+          border-radius: 2px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .live-btn:hover:not(:disabled) {
+          background: rgba(120, 203, 233, 0.22);
+          color: #fff;
+        }
+
+        .live-btn:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+
+        .live-steps {
+          list-style: none;
+          margin: 0.6rem 0 0;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 0.45rem;
+        }
+
+        .live-steps li {
+          display: flex;
+          align-items: center;
+          gap: 0.55rem;
+          font-size: 0.72rem;
+          color: rgba(238, 250, 255, 0.45);
+          transition: color 0.2s ease;
+        }
+
+        .live-steps li.done,
+        .live-steps li.active {
+          color: rgba(238, 250, 255, 0.9);
+        }
+
+        .live-steps li.failed {
+          color: #e28c31;
+        }
+
+        .live-step-icon {
+          flex: 0 0 auto;
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.6rem;
+          line-height: 1;
+        }
+
+        .live-steps li.done .live-step-icon {
+          background: #7ce0d0;
+          color: #01070e;
+        }
+
+        .live-steps li.done .live-step-icon::before {
+          content: "✓";
+        }
+
+        .live-steps li.failed .live-step-icon {
+          background: #e28c31;
+          color: #01070e;
+        }
+
+        .live-steps li.failed .live-step-icon::before {
+          content: "✕";
+        }
+
+        .live-steps li.active .live-step-icon {
+          border: 2px solid rgba(120, 203, 233, 0.3);
+          border-top-color: #7ce0d0;
+          animation: liveSpin 0.8s linear infinite;
+        }
+
+        @keyframes liveSpin {
+          to { transform: rotate(360deg); }
+        }
+
+        .live-error {
+          margin-top: 0.6rem;
+          padding: 0.6rem 0.7rem;
+          background: rgba(226, 140, 49, 0.1);
+          border: 1px solid rgba(226, 140, 49, 0.35);
+          color: #e28c31;
+          font-size: 0.72rem;
+          line-height: 1.5;
+          border-radius: 2px;
+        }
+
+        .live-badge {
+          display: inline-block;
+          padding: 0.3rem 0.6rem;
+          background: rgba(120, 203, 233, 0.12);
+          border: 1px solid rgba(120, 203, 233, 0.3);
+          color: #7ce0d0;
+          font-size: 0.6rem;
+          letter-spacing: 0.06em;
+          border-radius: 2px;
+        }
+
+        .live-result {
+          margin-top: 0.6rem;
         }
       `}</style>
     </div>
