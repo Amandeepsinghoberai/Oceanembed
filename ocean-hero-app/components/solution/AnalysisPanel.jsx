@@ -23,9 +23,13 @@ const SURFACE_FIELDS = [
   { key: 'eddy_vorticity', label: 'EDDY VORTICITY', format: (v) => `${v.toExponential(2)} 1/s` },
 ];
 
-export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, setIsSurface, selectedId }) {
+export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, setIsSurface, selectedId, arbitraryPoint }) {
   const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // A clicked point with no historical file at all (not one of the 5 demo
+  // points) — live prediction only, no HISTORICAL/LIVE toggle to show.
+  const isArbitrary = selectedId === null && !!arbitraryPoint;
 
   // HISTORICAL / LIVE — which data source drives the shared visual slots
   // below. Live prediction state is separate and cached per point: toggling
@@ -36,9 +40,15 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
   const [liveError, setLiveError] = useState(null);
   const [liveLoading, setLiveLoading] = useState(false);
   const liveSourceRef = useRef(null);
-  const isLive = viewMode === 'live';
+  const isLive = isArbitrary || viewMode === 'live';
 
   useEffect(() => {
+    if (selectedId === null) {
+      // No historical file for an arbitrary point — nothing to fetch.
+      setResult(null);
+      setIsLoading(false);
+      return;
+    }
     let cancelled = false;
     async function fetchResult() {
       setIsLoading(true);
@@ -51,25 +61,32 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
     return () => { cancelled = true; };
   }, [selectedId]);
 
-  // A newly selected point always starts on HISTORICAL, and cancels/clears
-  // any in-flight or cached live request — live is always a fresh, explicit
-  // action per point, never carried over from the previous one.
+  // A newly selected point always starts on HISTORICAL (or, for an
+  // arbitrary point with no historical file, goes straight to LIVE and
+  // fetches immediately), and cancels/clears any in-flight or cached live
+  // request — live is always fresh per point, never carried over.
   useEffect(() => {
-    setViewMode('historical');
     liveSourceRef.current?.close();
     liveSourceRef.current = null;
     setLiveSteps([]);
     setLiveResult(null);
     setLiveError(null);
     setLiveLoading(false);
-  }, [selectedId]);
+
+    if (selectedId === null && arbitraryPoint) {
+      setViewMode('live');
+      startLivePrediction(arbitraryPoint.lat, arbitraryPoint.lon);
+    } else {
+      setViewMode('historical');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId, arbitraryPoint?.lat, arbitraryPoint?.lon]);
 
   // Close the connection if the panel unmounts mid-stream.
   useEffect(() => () => liveSourceRef.current?.close(), []);
 
-  function startLivePrediction() {
-    if (!result?.location) return;
-    const { lat, lon } = result.location;
+  function startLivePrediction(lat, lon) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
 
     liveSourceRef.current?.close();
     setLiveSteps([]);
@@ -104,10 +121,12 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
 
   // Clicking LIVE only triggers a fetch the first time (or to retry after an
   // error) for this point — a cached liveResult means re-toggling is instant.
+  // (Only reachable for a known point — arbitrary points skip the toggle
+  // entirely and fetch immediately via the point-change effect above.)
   function handleTabClick(mode) {
     setViewMode(mode);
-    if (mode === 'live' && !liveResult && !liveLoading) {
-      startLivePrediction();
+    if (mode === 'live' && !liveResult && !liveLoading && result?.location) {
+      startLivePrediction(result.location.lat, result.location.lon);
     }
   }
 
@@ -169,22 +188,30 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
     <div className="analysis-panel">
 
       {/* Historical / Live toggle — the primary mode switch. A newly
-          selected point always starts here on HISTORICAL. */}
-      <div className="panel-mode-selector">
-        <button
-          className={!isLive ? "active" : ""}
-          onClick={() => handleTabClick('historical')}
-        >
-          HISTORICAL
-        </button>
-        <button
-          className={isLive ? "active" : ""}
-          onClick={() => handleTabClick('live')}
-          disabled={!result?.location}
-        >
-          LIVE
-        </button>
-      </div>
+          selected point always starts here on HISTORICAL. An arbitrary
+          (non-demo) point has no historical file at all, so there's only
+          one mode — the toggle is replaced with an honest note instead. */}
+      {isArbitrary ? (
+        <div className="new-location-note">
+          This is a new location — live prediction only. Our 5 highlighted points also include historical validation against real Argo measurements.
+        </div>
+      ) : (
+        <div className="panel-mode-selector">
+          <button
+            className={!isLive ? "active" : ""}
+            onClick={() => handleTabClick('historical')}
+          >
+            HISTORICAL
+          </button>
+          <button
+            className={isLive ? "active" : ""}
+            onClick={() => handleTabClick('live')}
+            disabled={!result?.location}
+          >
+            LIVE
+          </button>
+        </div>
+      )}
 
       {/* Surface / Under-surface — orthogonal to the tab above; applies to
           whichever tab (historical or live) is currently active. */}
@@ -206,11 +233,22 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
       <div className="panel-section">
         <div className="section-label">LOCATION</div>
         <div className="location-readout">
-          <div className="loc-region">{result?.location?.region || (isLoading ? "LOADING…" : "—")}</div>
-          {result?.location && (
-            <div className="loc-coords">
-              {result.location.lat >= 0 ? `${result.location.lat}° N` : `${Math.abs(result.location.lat)}° S`} • {result.location.lon >= 0 ? `${result.location.lon}° E` : `${Math.abs(result.location.lon)}° W`}
-            </div>
+          {isArbitrary ? (
+            <>
+              <div className="loc-region">{arbitraryPoint.region}</div>
+              <div className="loc-coords">
+                {arbitraryPoint.lat >= 0 ? `${arbitraryPoint.lat.toFixed(2)}° N` : `${Math.abs(arbitraryPoint.lat).toFixed(2)}° S`} • {arbitraryPoint.lon >= 0 ? `${arbitraryPoint.lon.toFixed(2)}° E` : `${Math.abs(arbitraryPoint.lon).toFixed(2)}° W`}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="loc-region">{result?.location?.region || (isLoading ? "LOADING…" : "—")}</div>
+              {result?.location && (
+                <div className="loc-coords">
+                  {result.location.lat >= 0 ? `${result.location.lat}° N` : `${Math.abs(result.location.lat)}° S`} • {result.location.lon >= 0 ? `${result.location.lon}° E` : `${Math.abs(result.location.lon)}° W`}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -735,6 +773,17 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
           border: 1px solid rgba(120, 203, 233, 0.25);
           color: rgba(238, 250, 255, 0.75);
           font-size: 0.72rem;
+          line-height: 1.5;
+          border-radius: 2px;
+        }
+
+        .new-location-note {
+          padding: 0.6rem 0.7rem;
+          margin-bottom: 0.5rem;
+          background: rgba(226, 140, 49, 0.08);
+          border: 1px solid rgba(226, 140, 49, 0.3);
+          color: rgba(238, 250, 255, 0.8);
+          font-size: 0.7rem;
           line-height: 1.5;
           border-radius: 2px;
         }

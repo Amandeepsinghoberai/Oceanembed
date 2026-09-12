@@ -17,10 +17,35 @@ const deepHeatStyle = {
 // counts as "on" a marker, for both hover and click.
 const MARKER_HIT_RADIUS = 18;
 
-export default function RealOceanMap({ depth, isSurface, selectedId, setSelectedId, locations }) {
+// Real trained-model coverage — must match backend/live_predict.py's
+// _classify_region exactly, so the frontend never accepts a click the
+// backend would reject (or vice versa). Verified directly against the
+// models' own grids: the Bay of Bengal grid's real western edge is 80°E,
+// not the 77° Arabian/Bay routing threshold — 77-80°E is a real gap
+// covered by neither model.
+const COVERAGE_LAT_MIN = 5.0;
+const COVERAGE_LAT_MAX = 30.0;
+const ARABIAN_LON_MIN = 45.0;
+const ARABIAN_LON_MAX = 77.0; // exclusive
+const BAY_LON_COVERAGE_MIN = 80.0;
+const BAY_LON_MAX = 100.0;
+
+function classifyRegion(lat, lon) {
+  if (lat < COVERAGE_LAT_MIN || lat > COVERAGE_LAT_MAX) return null;
+  if (lon >= ARABIAN_LON_MIN && lon < ARABIAN_LON_MAX) return 'Arabian Sea';
+  if (lon >= BAY_LON_COVERAGE_MIN && lon <= BAY_LON_MAX) return 'Bay of Bengal';
+  return null;
+}
+
+export default function RealOceanMap({ depth, isSurface, selectedId, setSelectedId, arbitraryPoint, setArbitraryPoint, locations }) {
   const [mapPath, setMapPath] = useState('');
   const [hoverMarker, setHoverMarker] = useState(null);
   const [resultsById, setResultsById] = useState({});
+  // Transient click feedback — a multi-marker chooser or a "no coverage"
+  // notice. Both clear on the next click anywhere else on the map.
+  const [chooserOptions, setChooserOptions] = useState(null);
+  const [coverageNotice, setCoverageNotice] = useState(null);
+  const noticeTimeoutRef = useRef(null);
 
   const svgRef = useRef(null);
   const projectionRef = useRef(null);
@@ -51,6 +76,8 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
     }
     if (locations.length > 0) loadResults();
   }, [locations]);
+
+  useEffect(() => () => clearTimeout(noticeTimeoutRef.current), []);
 
   const heatStyle = (isSurface && depth < 200) ? surfaceHeatStyle : deepHeatStyle;
   const opacity = Math.max(0.2, 1 - (depth / 1000));
@@ -102,6 +129,12 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
     return nearest;
   };
 
+  // Every known marker within hit radius — not just the nearest. Used by
+  // clicks (to offer a chooser when 2+ overlap) rather than hover (which
+  // only ever previews one).
+  const findNearbyMarkers = (x, y) =>
+    markers.filter(m => Math.hypot(m.x - x, m.y - y) < MARKER_HIT_RADIUS);
+
   const handlePointer = (e) => {
     if (e.target.classList.contains('land-mass')) {
       setHoverMarker(null);
@@ -121,18 +154,56 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
     setHoverMarker(null);
   };
 
+  const selectKnownMarker = (id) => {
+    setSelectedId(id);
+    setArbitraryPoint(null);
+    setChooserOptions(null);
+    setCoverageNotice(null);
+  };
+
   const handleClick = (e) => {
     if (e.target.classList.contains('land-mass')) return;
 
     const coordinates = getMapCoordinates(e);
     if (!coordinates) return;
 
-    const nearest = findNearestMarker(coordinates.x, coordinates.y);
-    if (nearest) setSelectedId(nearest.id);
+    clearTimeout(noticeTimeoutRef.current);
+    setChooserOptions(null);
+    setCoverageNotice(null);
+
+    const nearby = findNearbyMarkers(coordinates.x, coordinates.y);
+
+    if (nearby.length === 1) {
+      selectKnownMarker(nearby[0].id);
+      return;
+    }
+
+    if (nearby.length > 1) {
+      // Overlapping known markers — ask which one, rather than guessing
+      // (and rather than nudging their true positions apart).
+      setChooserOptions({ markers: nearby, x: coordinates.x, y: coordinates.y });
+      return;
+    }
+
+    // No known marker here — treat as an arbitrary point within (or
+    // outside) real model coverage.
+    const region = classifyRegion(coordinates.lat, coordinates.lon);
+    if (!region) {
+      setCoverageNotice({ x: coordinates.x, y: coordinates.y });
+      noticeTimeoutRef.current = setTimeout(() => setCoverageNotice(null), 3500);
+      return;
+    }
+
+    setSelectedId(null);
+    setArbitraryPoint({ lat: coordinates.lat, lon: coordinates.lon, region });
   };
 
-  const selectedMarker = markers.find(m => m.id === selectedId) || null;
   const hoverResult = hoverMarker ? resultsById[hoverMarker.id] : null;
+
+  // Screen position of the current arbitrary-point marker, if any.
+  const arbitraryMarkerXY = (arbitraryPoint && projectionRef.current)
+    ? projectionRef.current([arbitraryPoint.lon, arbitraryPoint.lat])
+    : null;
 
   return (
     <div className="ocean-map-container">
@@ -199,6 +270,17 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
              </g>
            ))}
 
+           {/* The current arbitrary (non-demo) point, if any — same
+               "selected" visual language as a known marker. */}
+           {arbitraryMarkerXY && (
+             <g className="observation-node selected new-point" transform={`translate(${arbitraryMarkerXY[0]}, ${arbitraryMarkerXY[1]})`}>
+               <circle r="45" fill="#e28c31" opacity="0.05" />
+               <circle r="25" fill="#e28c31" opacity="0.1" />
+               <circle r="4" fill="#e28c31" className="sonar-ping new-point-ping" />
+               <circle r="1.5" fill="#fff" />
+             </g>
+           )}
+
            {/* Dynamic Tooltip following the nearest marker under the pointer */}
            {hoverMarker && (
              <g transform={`translate(${hoverMarker.x + 15}, ${hoverMarker.y + 15})`} style={{ pointerEvents: 'none' }}>
@@ -211,6 +293,37 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
                <text x="10" y="74" fill="#fff" fontSize="9" fontWeight="bold">
                  {hoverResult ? `${hoverResult.surface_state.sst_c.toFixed(2)}°C` : "…"}
                </text>
+             </g>
+           )}
+
+           {/* Chooser — 2+ known markers within hit radius of the click.
+               Each real marker's own lat/lon is shown exactly; nothing is
+               nudged or approximated. */}
+           {chooserOptions && (
+             <g transform={`translate(${Math.min(chooserOptions.x + 15, 800 - 165)}, ${Math.min(chooserOptions.y + 15, 500 - (34 + chooserOptions.markers.length * 22))})`}>
+               <rect width="160" height={30 + chooserOptions.markers.length * 22} fill="rgba(1, 7, 14, 0.96)" stroke="#7ce0d0" strokeWidth="0.7" rx="2" />
+               <text x="10" y="16" fill="#78CBE9" fontSize="7" letterSpacing="0.05em">{chooserOptions.markers.length} LOCATIONS HERE</text>
+               {chooserOptions.markers.map((m, i) => (
+                 <g
+                   key={m.id}
+                   transform={`translate(6, ${26 + i * 22})`}
+                   className="chooser-option"
+                   onClick={(evt) => { evt.stopPropagation(); selectKnownMarker(m.id); }}
+                 >
+                   <rect width="148" height="18" fill="rgba(120, 203, 233, 0.08)" />
+                   <text x="6" y="12" fill="#fff" fontSize="7.5">{m.region} · {m.lat.toFixed(2)}°, {m.lon.toFixed(2)}°</text>
+                 </g>
+               ))}
+             </g>
+           )}
+
+           {/* No-coverage notice — clicked outside both regions' real
+               model coverage. Clear, not silent, not an error dead-end. */}
+           {coverageNotice && (
+             <g transform={`translate(${Math.min(coverageNotice.x + 15, 800 - 175)}, ${Math.min(coverageNotice.y + 15, 500 - 36)})`} style={{ pointerEvents: 'none' }}>
+               <rect width="170" height="36" fill="rgba(1, 7, 14, 0.94)" stroke="#e28c31" strokeWidth="0.6" rx="2" />
+               <text x="10" y="16" fill="#e28c31" fontSize="7" fontWeight="bold" letterSpacing="0.05em">NO COVERAGE</text>
+               <text x="10" y="28" fill="rgba(238, 250, 255, 0.8)" fontSize="7">No coverage at this location</text>
              </g>
            )}
 
@@ -305,9 +418,26 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
           animation: ping 2s infinite ease-out;
         }
 
+        .new-point-ping {
+          animation: pingOrange 2s infinite ease-out;
+        }
+
         @keyframes ping {
           0% { stroke: #7ce0d0; stroke-width: 0; opacity: 1; }
           100% { stroke: #7ce0d0; stroke-width: 15; opacity: 0; }
+        }
+
+        @keyframes pingOrange {
+          0% { stroke: #e28c31; stroke-width: 0; opacity: 1; }
+          100% { stroke: #e28c31; stroke-width: 15; opacity: 0; }
+        }
+
+        .chooser-option {
+          cursor: pointer;
+        }
+
+        .chooser-option:hover rect {
+          fill: rgba(120, 203, 233, 0.22);
         }
       `}</style>
     </div>

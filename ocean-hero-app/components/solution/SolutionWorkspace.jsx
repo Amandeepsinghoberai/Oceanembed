@@ -12,6 +12,9 @@ export default function SolutionWorkspace() {
   const [isSurface, setIsSurface] = useState(true);
   // Default to id 0 — demo_1.json's point, per ModelResultsProvider's fixed load order.
   const [selectedId, setSelectedId] = useState(0);
+  // A clicked point with no historical file — { lat, lon, region } — mutually
+  // exclusive with selectedId (exactly one of the two is ever non-null).
+  const [arbitraryPoint, setArbitraryPoint] = useState(null);
   const [locations, setLocations] = useState([]);
   const [selectedResult, setSelectedResult] = useState(null);
 
@@ -51,6 +54,7 @@ export default function SolutionWorkspace() {
             isSurface={isSurface}
             setIsSurface={setIsSurface}
             selectedId={selectedId}
+            arbitraryPoint={arbitraryPoint}
           />
         </div>
 
@@ -60,6 +64,8 @@ export default function SolutionWorkspace() {
             isSurface={isSurface}
             selectedId={selectedId}
             setSelectedId={setSelectedId}
+            arbitraryPoint={arbitraryPoint}
+            setArbitraryPoint={setArbitraryPoint}
             locations={locations}
           />
         </div>
