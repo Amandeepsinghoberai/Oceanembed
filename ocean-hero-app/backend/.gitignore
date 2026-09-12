@@ -1,0 +1,13 @@
+# Python environment / build artifacts
+.venv/
+__pycache__/
+*.pyc
+
+# Scratch dir for real-time fetches during a live prediction (ephemeral)
+live_cache/
+
+# Model weights + grid files: too large for this repo (processed_sst_full.nc
+# alone is ~272MB, over GitHub's 100MB per-file limit) and not source code -
+# see models/.gitkeep and README.md for where to get them.
+models/*
+!models/.gitkeep

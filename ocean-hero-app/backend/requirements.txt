@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+torch
+xarray
+numpy
+pandas
+copernicusmarine
+netCDF4
