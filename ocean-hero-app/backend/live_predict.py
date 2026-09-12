@@ -13,6 +13,34 @@ BAY_LON_MIN = 77.0
 LIVE_DIR = "live_cache"
 os.makedirs(LIVE_DIR, exist_ok=True)
 
+# Real trained-model coverage (verified against the models' own grids:
+# processed_sst_full.nc for Arabian Sea, processed_sst_4yr.nc for Bay of
+# Bengal). BAY_LON_MIN (77) is only the historical Arabian/Bay routing
+# threshold - the Bay of Bengal grid's real western edge is 80, not 77.
+# 77-80 E is a genuine gap covered by neither model.
+COVERAGE_LAT_MIN = 5.0
+COVERAGE_LAT_MAX = 30.0
+ARABIAN_LON_MIN = 45.0
+ARABIAN_LON_MAX = BAY_LON_MIN  # 77 - exclusive upper edge, matches the routing split
+BAY_LON_COVERAGE_MIN = 80.0
+BAY_LON_MAX = 100.0
+
+
+def _classify_region(lat, lon):
+    """
+    Returns 'arabian', 'bay', or None (no real coverage) for a lat/lon.
+    None must be treated as a hard stop - never routed into either model,
+    since that would silently mis-cluster a point the model was never
+    trained to see (e.g. the 77-80 E gap, or anywhere outside 5-30 N).
+    """
+    if not (COVERAGE_LAT_MIN <= lat <= COVERAGE_LAT_MAX):
+        return None
+    if ARABIAN_LON_MIN <= lon < ARABIAN_LON_MAX:
+        return "arabian"
+    if BAY_LON_COVERAGE_MIN <= lon <= BAY_LON_MAX:
+        return "bay"
+    return None
+
 
 class MLP(nn.Module):
     def __init__(self, n_inputs):
@@ -94,8 +122,15 @@ def predict_live(lat, lon):
     run through the correct trained, validated model. No Argo comparison is
     possible here (real measurements for "today" don't exist yet) - that's an
     honest, expected limitation, not a bug.
+
+    Returns None for a point outside real model coverage (see
+    _classify_region) - same convention as an out-of-cluster point below.
     """
-    if lon < BAY_LON_MIN:
+    region_key = _classify_region(lat, lon)
+    if region_key is None:
+        return None
+
+    if region_key == "arabian":
         region = "Arabian Sea"
 
         sst_path, sst_date = _fetch_latest("METOFFICE-GLO-SST-L4-NRT-OBS-SST-V2", "analysed_sst", lat, lon, "live_sst.nc")
@@ -185,8 +220,25 @@ def predict_live_streaming(lat, lon):
     treats the arrival of the *next* message (or "complete") as proof that the
     previous real fetch actually finished - so every checkmark the user sees
     corresponds to a real completed network call, never a timer.
+
+    A point outside real model coverage (see _classify_region) yields a
+    single explicit error and never attempts a fetch - it was never going
+    to be routed into a model that wasn't trained to see it.
     """
-    if lon < BAY_LON_MIN:
+    region_key = _classify_region(lat, lon)
+    if region_key is None:
+        yield {
+            "step": "error", "done": True,
+            "error": (
+                f"No coverage at this location ({lat:.2f}, {lon:.2f}). "
+                f"Valid coverage: Arabian Sea ({COVERAGE_LAT_MIN:.0f}-{COVERAGE_LAT_MAX:.0f}°N, "
+                f"{ARABIAN_LON_MIN:.0f}-{ARABIAN_LON_MAX:.0f}°E) and Bay of Bengal "
+                f"({COVERAGE_LAT_MIN:.0f}-{COVERAGE_LAT_MAX:.0f}°N, {BAY_LON_COVERAGE_MIN:.0f}-{BAY_LON_MAX:.0f}°E)."
+            ),
+        }
+        return
+
+    if region_key == "arabian":
         region = "Arabian Sea"
 
         yield {"step": "Fetching live sea surface temperature...", "done": False}
