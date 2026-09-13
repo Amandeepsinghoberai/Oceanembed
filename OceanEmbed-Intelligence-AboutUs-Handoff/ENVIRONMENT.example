@@ -1,6 +1,0 @@
-# Environment Configuration Placeholder for OceanEmbed
-# Copy these keys into your local .env.local file if using the About Us contact form.
-
-NEXT_PUBLIC_EMAILJS_SERVICE_ID=YOUR_SERVICE_ID_HERE
-NEXT_PUBLIC_EMAILJS_TEMPLATE_ID=YOUR_TEMPLATE_ID_HERE
-NEXT_PUBLIC_EMAILJS_PUBLIC_KEY=YOUR_PUBLIC_KEY_HERE
