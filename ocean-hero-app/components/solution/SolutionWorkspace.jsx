@@ -131,6 +131,10 @@ export default function SolutionWorkspace() {
           display: flex;
           flex-direction: column;
           min-height: 0;
+          /* Don't stretch to match .ws-left's (often much taller) content
+             height — let the map render at its own aspect-ratio-driven
+             height instead of being force-stretched near-square. */
+          align-self: flex-start;
         }
 
         @media (max-width: 1024px) {

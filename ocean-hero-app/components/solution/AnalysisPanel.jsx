@@ -14,6 +14,18 @@ const DEFAULT_DEPTHS_M = [0, 5, 10, 20, 30, 50, 75, 100, 125, 150, 200, 300, 500
 // surface_state carries 2 fields for Bay of Bengal points and 6 for
 // Arabian Sea points — this renders whichever keys are actually present
 // on the matched result, in a fixed display order.
+// Hand-rolled, not Date/toLocaleDateString — this project has already hit a
+// real server-vs-browser locale hydration mismatch once (see the /technology
+// page's formatCount()); formatting "YYYY-MM-DD" from its own string parts
+// sidesteps that class of bug entirely instead of risking it again.
+const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function formatArgoDate(isoDate) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
+  if (!m) return isoDate;
+  const [, year, month, day] = m;
+  return `${MONTH_ABBR[parseInt(month, 10) - 1]} ${parseInt(day, 10)}, ${year}`;
+}
+
 const SURFACE_FIELDS = [
   { key: 'sst_c', label: 'SST', format: (v) => `${v.toFixed(2)}°C` },
   { key: 'ssh_m', label: 'SSH', format: (v) => `${v.toFixed(3)} m` },
@@ -166,6 +178,12 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
     ? Object.values(liveResult.data_dates).slice().sort().slice(-1)[0]
     : null;
 
+  // "found" | "none_nearby" | "lookup_failed" — the backend always returns
+  // one of these three so a network/lookup failure is never presented as a
+  // confirmed "no float nearby" (they used to collapse to the same result).
+  const argoContext = liveResult?.recent_argo_context;
+  const argoStatus = argoContext?.status;
+
   // ---- Active values: whichever tab is selected drives these shared slots ----
   const activeDepthsM = isLive ? liveDepthsM : depthsM;
   const activeClampedDepthIndex = isLive ? liveClampedDepthIndex : clampedDepthIndex;
@@ -310,7 +328,32 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
           ) : liveError ? (
             <div className="live-error">LIVE PREDICTION FAILED — {liveError}</div>
           ) : (
-            <div className="live-info-note">Not yet validated against Argo — real Argo data for this date won&apos;t be available for several weeks.</div>
+            <>
+              <div className="live-info-note">Not yet validated against Argo — real Argo data for this date won&apos;t be available for several weeks.</div>
+
+              {/* Honest supporting context only — a real, nearby, recent Argo
+                  reading, never a validation of the live number above (different
+                  exact date and location). Shown in all three real outcomes —
+                  found, confirmed none nearby, or the lookup itself failing —
+                  so "no float nearby" only ever appears when that's actually
+                  true, not whenever a network call happened to fail. */}
+              <div className={`argo-context-note ${argoStatus === 'found' ? '' : 'argo-context-note-empty'}`}>
+                <div className="argo-context-label">NEARBY RECENT ARGO READING</div>
+                {argoStatus === 'found' ? (
+                  <div className="argo-context-body">
+                    {argoContext.surface_temp_c.toFixed(1)}°C — real float measurement from{' '}
+                    {formatArgoDate(argoContext.date)} ({argoContext.days_ago}{' '}
+                    day{argoContext.days_ago === 1 ? '' : 's'} ago), ~
+                    {Math.round(argoContext.distance_km)}km away
+                  </div>
+                ) : argoStatus === 'lookup_failed' ? (
+                  <div className="argo-context-body">Could not check for nearby Argo floats right now (network issue) — this is not a confirmed absence, just an unavailable lookup.</div>
+                ) : (
+                  <div className="argo-context-body">No real Argo float has reported within 30 days near this location.</div>
+                )}
+                <div className="argo-context-caption">For reference only — not the same date or exact location as this prediction.</div>
+              </div>
+            </>
           )
         ) : (
           <div className="metrics-grid">
@@ -775,6 +818,46 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
           font-size: 0.72rem;
           line-height: 1.5;
           border-radius: 2px;
+        }
+
+        .argo-context-note {
+          margin-top: 0.5rem;
+          padding: 0.6rem 0.7rem;
+          background: rgba(124, 224, 208, 0.07);
+          border: 1px solid rgba(124, 224, 208, 0.3);
+          border-radius: 2px;
+        }
+
+        .argo-context-note-empty {
+          background: rgba(238, 250, 255, 0.04);
+          border: 1px solid rgba(238, 250, 255, 0.14);
+        }
+
+        .argo-context-label {
+          font-size: 0.62rem;
+          letter-spacing: 0.1em;
+          color: #7ce0d0;
+          font-weight: 500;
+          opacity: 0.85;
+          margin-bottom: 0.35rem;
+        }
+
+        .argo-context-note-empty .argo-context-label {
+          color: rgba(238, 250, 255, 0.5);
+        }
+
+        .argo-context-body {
+          color: rgba(238, 250, 255, 0.85);
+          font-size: 0.72rem;
+          line-height: 1.5;
+        }
+
+        .argo-context-caption {
+          margin-top: 0.35rem;
+          color: rgba(238, 250, 255, 0.4);
+          font-size: 0.64rem;
+          font-style: italic;
+          line-height: 1.4;
         }
 
         .new-location-note {

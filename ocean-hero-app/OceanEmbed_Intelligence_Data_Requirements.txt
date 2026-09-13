@@ -1,0 +1,173 @@
+OceanEmbed — Intelligence Page
+Data & AI Integration Requirements
+Exact inputs required for Fisheries, Ocean Health, Offshore and Maritime Intelligence
+1. Purpose
+This document is the integration specification for OceanEmbed's Intelligence page. It tells the frontend/backend/ML team exactly where live surface data, OceanEmbed AI subsurface predictions, reference data and derived calculations are required. The objective is to connect the real trained model later without changing the four Intelligence features.
+2. Core concept
+OceanEmbed follows Observe → Reconstruct → Understand → Decide. The Intelligence page is the application layer: it takes physical ocean observations plus reconstructed subsurface temperature and converts them into domain-specific decision support.
+Pipeline:
+Data sources → harmonization → surface ocean state → OceanEmbed AI → subsurface temperature profile → derived physical features → module-specific analysis → Intelligence UI.
+3. MOST IMPORTANT: where the AI model output is needed
+CRITICAL: HYCOM/GLORYS subsurface temperature must NOT be labelled 'OceanEmbed prediction' unless the trained OceanEmbed model actually produced it. Reanalysis can be used as reference/validation data.
+If the trained model is unavailable, invalid at a location, or does not provide a requested depth, return INSUFFICIENT DATA / DATA NOT AVAILABLE. Never create fake values.
+4. Common ocean readings
+5. Fisheries Intelligence
+Question answered: 'Are the physical ocean conditions environmentally favorable for fishing-related activity at this location?' It does NOT detect fish, identify species, estimate abundance or guarantee a fishing location.
+Overall suitability is a weighted environmental indicator. Prototype classes: FAVORABLE, MODERATE, LESS SUITABLE, INSUFFICIENT DATA. The ranges and weights require fisheries-specific validation before being described as validated fishing guidance.
+6. Ocean Health Intelligence
+Question answered: 'Are the physical ocean conditions unusual compared with an appropriate reference?' This is physical-condition monitoring, not a complete biological ecosystem-health diagnosis.
+Depth selectors: 0–200 m, 200–600 m, 600–900 m, 900–1000 m.
+Status classes: NORMAL, ELEVATED, UNUSUAL, INSUFFICIENT DATA. Exact thresholds must be defined from a suitable climatology/baseline. A cross-depth comparison must NOT be called a true anomaly.
+Possible physical processes can be shown as investigation hypotheses: water-mass movement/subduction, mesoscale eddy activity, vertical mixing, upwelling variability, and marine heat events. Do not automatically attribute anomalies to pollution, volcanoes or climate change.
+7. Offshore Intelligence
+Question answered: 'What are the ocean conditions at this offshore site and how do they vary through the water column?' This supports planning/monitoring; it is NOT engineering safety certification.
+Presets currently discussed: Arabian Sea Sector, Krishna–Godavari Deep Water, Lakshadweep Ridge Channel.
+8. Maritime Intelligence
+Question answered: 'How do ocean currents and water geography affect a route between two selected locations?' Current version = prototype water-constrained/current-aware route analysis, NOT globally optimal routing and NOT autonomous navigation.
+Current effect classes: FAVORABLE, OPPOSING, MIXED, DATA NOT AVAILABLE. Current UI should show ✓ CURRENT and unavailable factors such as — WIND, — WAVES, — WEATHER until real datasets are integrated.
+9. Data-source mapping
+10. Derived calculations the backend should expose
+Current speed = sqrt(U² + V²).
+Current direction = vector direction derived from U and V.
+Vertical temperature gradient = temperature change / depth interval.
+Thermocline indicator = derived from the vertical temperature gradient; exact algorithm must be fixed before claiming a scientific thermocline detector.
+True temperature anomaly = OceanEmbed T at depth − reference T at the same depth.
+Route-current effect = current vector component relative to route direction; define the sign convention before classifying favorable/opposing.
+Route distance = length of the analyzed water route.
+11. Recommended normalized API response
+All four modules should preferably consume one normalized ocean-state response instead of implementing separate provider-specific fetch logic.
+{
+  "location": {"lat": 15.2, "lon": 72.8},
+  "surface": {
+    "sst_c": 27.1,
+    "sss_psu": 35.1,
+    "current_u_ms": 0.18,
+    "current_v_ms": 0.31,
+    "ssh_m": 0.42
+  },
+  "subsurface": {
+    "source": "OceanEmbed",
+    "depth_m": [0, 50, 100, 200, 500, 1000],
+    "temperature_c": [27.1, 26.8, 23.5, 19.2, 14.1, 8.2],
+    "valid": true
+  },
+  "reference": {
+    "source": "GLORYS",
+    "temperature_c_by_depth": [ ... ],
+    "same_depth": true
+  },
+  "provenance": ["OSTIA", "GLORYS", "OceanEmbed"]
+}
+12. Minimum data checklist before each feature is 'fully live'
+Fisheries: SST + SSS + current U/V + valid OceanEmbed subsurface profile + defined/validated suitability logic.
+Ocean Health: valid OceanEmbed profile + same-depth reference baseline + anomaly thresholds + supporting SSS/current/SSH where available.
+Offshore: SST + SSS + current U/V + OceanEmbed temperatures at 200/500/1000 m or full profile + compatible GLORYS reference + anomaly logic.
+Maritime: valid A/B water points + land/water mask + water-constrained route engine + current U/V along route.
+13. Future data needed for stronger intelligence
+Wind speed/direction
+Significant wave height and wave direction
+Weather forecast
+Bathymetry
+Marine protected/restricted zones
+Shipping lanes and navigational constraints
+Vessel speed and vessel-specific fuel model
+Species-specific fisheries preferences and independent fisheries datasets
+14. Scientific/UI rules
+Never fabricate missing ocean readings.
+Show source/provenance where practical.
+Do not label HYCOM/GLORYS as OceanEmbed prediction unless the trained model produced the value.
+Use same-depth baselines for true subsurface temperature anomalies.
+Do not call a simple current difference 'divergence' unless spatial divergence is actually calculated.
+Prototype fisheries thresholds/weights must be labelled as prototype until validated.
+Fisheries = environmental suitability, not fish detection.
+Ocean Health = unusual physical conditions, not complete ecological health.
+Offshore = planning/monitoring support, not engineering certification.
+Maritime = decision support, not autonomous navigation.
+15. Final architecture
+SURFACE LIVE/OBSERVED DATA
+SST + SSS + Current U/V + SSH
+                ↓
+         OceanEmbed AI
+                ↓
+SUBSURFACE TEMPERATURE PROFILE
+0–1000 m (or model-valid range)
+                ↓
+DERIVED FEATURES
+Current speed/direction + vertical gradients + thermocline indicators + anomalies
+                ↓
+ ┌──────────────┬──────────────┬──────────────┐
+ ↓              ↓              ↓              ↓
+FISHERIES   OCEAN HEALTH   OFFSHORE      MARITIME
+Suitability  Anomalies      Site state     Routing
+ └──────────────┴──────────────┴──────────────┘
+                ↓
+         DECISION SUPPORT
+16. One-line integration rule for the AI developer
+Whenever a feature asks for subsurface temperature, depth-specific temperature, thermocline/profile structure or subsurface anomaly, feed it the actual OceanEmbed model prediction; use live surface providers for SST/SSS/current/SSH; use GLORYS/HYCOM as explicitly labelled reference data; and return INSUFFICIENT DATA whenever a required real value is unavailable.
+
+Module | OceanEmbed AI output required? | Exact model data needed | Purpose
+Fisheries | YES | Subsurface temperature T(z), preferably surface to ~1000 m, with depth array | Profile/thermocline contribution to environmental suitability
+Ocean Health | YES | T(z) across selected bands: 0–200, 200–600, 600–900, 900–1000 m; preferably full profile | Depth-specific physical anomaly analysis
+Offshore | YES | Temperature at minimum 200, 500 and 1000 m; preferably full T(z) profile | Subsurface site condition and vertical profile
+Maritime | NOT required in current version | No subsurface temperature needed for current route calculation | Current routing currently uses surface current + water geometry
+
+Reading | Unit | Required | Used by | How it is used
+Latitude / Longitude | degrees | YES | All | Location lookup and map state
+SST | °C | YES | Fisheries, Health, Offshore | Surface thermal condition
+SSS | PSU | YES where available | Fisheries, Health, Offshore | Salinity/water-mass condition
+Current U | m/s | YES | Fisheries, Offshore, Maritime | East-west current component
+Current V | m/s | YES | Fisheries, Offshore, Maritime | North-south current component
+Current speed | m/s | DERIVED | Fisheries, Offshore, Maritime | sqrt(U²+V²)
+Current direction | degrees | DERIVED | Fisheries, Offshore, Maritime | Direction from U/V vector
+Subsurface T(z) | °C by depth | AI | Fisheries, Health, Offshore | OceanEmbed reconstruction
+Depth vector | m | YES with profile | Fisheries, Health, Offshore | Associates every prediction with depth
+Vertical temperature gradient | °C/m | DERIVED | Fisheries, Health, Offshore | Thermal structure/thermocline
+SSH | m | Recommended/context | Health, Offshore | Dynamic/mesoscale context
+Reference T(z) | °C by same depth | YES for true anomaly | Health, Offshore | Baseline comparison
+
+Factor | Weight | Input | Prototype rule / calculation | Output
+Temperature | 30% | SST °C | Favorable prototype range ~24.0–28.5°C | Temperature contribution
+Salinity | 25% | SSS PSU | Favorable prototype range ~34.2–35.8 PSU | Salinity contribution
+Current | 25% | U/V → speed | Favorable prototype range ~0.2–0.6 m/s | Current contribution
+Profile / Depth | 20% | OceanEmbed T(z) + dT/dz | Evaluate vertical thermal structure/thermocline | Profile contribution
+
+Factor | Required? | Input | Calculation/use
+OceanEmbed temperature profile | YES | T(z) | Inspect selected depth band/profile
+Same-depth reference | YES for true anomaly | T_ref(z) | Reference temperature at matching depth
+Temperature anomaly | DERIVED | T(z), T_ref(z) | T(z) − T_ref(z)
+SSS | Supporting | PSU | Water-mass context
+Current U/V | Supporting | m/s | Circulation context
+SSH | Recommended | m | Dynamic/mesoscale context
+Vertical gradient | DERIVED | T(z) | Thermal structure
+
+Reading | Unit | Source / role | Required
+SST | °C | Real surface observation/reanalysis | YES
+SSS | PSU | Real salinity source | YES where available
+Current U/V | m/s | Real current/GLORYS source | YES
+T at 200 m | °C | OceanEmbed AI | YES
+T at 500 m | °C | OceanEmbed AI | YES
+T at 1000 m | °C | OceanEmbed AI | YES
+Full T(z) | °C by depth | OceanEmbed AI | Preferred
+Temperature anomaly | °C | OceanEmbed vs compatible same-depth GLORYS baseline | When valid
+SSH | m | GLORYS/reference context | Recommended
+
+Input / metric | Unit | Required | Use
+Origin A | lat/lon | YES | User water selection
+Destination B | lat/lon | YES | User water selection
+Land/water mask | geospatial | YES | Reject land clicks and keep route on water
+Great-circle route | coordinates | Derived | Dashed geometric reference
+Analyzed water route | coordinates | Derived | Solid route constrained to water
+Current U/V along route | m/s | YES | Current effect analysis
+Current speed | m/s | Derived | Magnitude
+Current direction | degrees | Derived | Vector direction
+Route-current alignment | derived | Derived | Favorable/opposing/mixed effect
+Distance | km / nmi | Derived | Route length
+Estimated time | hours | Conditional | Only with explicit vessel speed/assumption
+
+Source | Provides | Main Intelligence use
+OSTIA / satellite SST | Sea surface temperature | Fisheries, Health, Offshore
+GLORYS reanalysis | SST, SSS, SSH, currents, subsurface reference | Health baseline, Offshore reference, current/surface support
+HYCOM | Subsurface temperature/profile reference | Profile/reference support; NOT automatically OceanEmbed output
+SMAP / salinity source | Surface salinity | Fisheries, Offshore, Health
+Argo | Observed subsurface profiles | Training/validation; sparse operational observations
+OceanEmbed trained model | Reconstructed subsurface temperature | Fisheries, Health, Offshore

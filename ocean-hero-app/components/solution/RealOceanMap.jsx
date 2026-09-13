@@ -17,6 +17,12 @@ const deepHeatStyle = {
 // counts as "on" a marker, for both hover and click.
 const MARKER_HIT_RADIUS = 18;
 
+// Smaller than MARKER_HIT_RADIUS on purpose — Argo dots are hover-only
+// context (never click targets), and a known marker always wins when both
+// are nearby, so a tight radius just avoids a dot eating a hover that was
+// clearly meant for open water or the land mass.
+const ARGO_HIT_RADIUS = 9;
+
 // Real trained-model coverage — must match backend/live_predict.py's
 // _classify_region exactly, so the frontend never accepts a click the
 // backend would reject (or vice versa). Verified directly against the
@@ -37,37 +43,173 @@ function classifyRegion(lat, lon) {
   return null;
 }
 
-// Standard sequential cool->warm temperature scale (dark blue -> blue ->
-// cyan -> pale green/yellow -> orange -> red) for the real SST heatmap
-// overlay. This is visual context only, never a model prediction — see
-// regional_sst_grid.json's own "raw satellite reading" framing.
+// Standard cool->warm spectral temperature scale (deep blue -> cyan -> green
+// -> yellow -> orange -> red), the palette convention used by published
+// satellite SST imagery. This is visual context only, never a model
+// prediction — see regional_sst_grid.json's own "raw satellite reading"
+// framing. The legend below is generated from these same stops, so the
+// colours on the map always mean what the legend says.
+// Each stop is [position, r, g, b]. The positions are deliberately uneven:
+// this region's water is warm almost everywhere (1st-99th percentile spans
+// only ~24-35°C), so spreading the palette evenly would render tropical sea
+// in the cool half of the scale and read as cold. Weighting the warm colours
+// toward the middle puts typical open ocean in yellow/amber, leaving blue and
+// cyan for genuinely cooler upwelling water and red for the hottest gulfs.
 const SST_COLOR_STOPS = [
-  [8, 37, 103],
-  [40, 108, 184],
-  [98, 181, 210],
-  [186, 222, 165],
-  [244, 216, 106],
-  [232, 138, 59],
-  [178, 45, 45],
+  [0.00, 45, 85, 175],
+  [0.12, 35, 160, 215],
+  [0.24, 50, 200, 180],
+  [0.34, 140, 220, 100],
+  [0.44, 235, 220, 65],
+  [0.56, 250, 180, 40],
+  [0.72, 245, 120, 30],
+  [1.00, 185, 35, 22],
 ];
 
+// Opacity of the finished overlay. High enough to read as a real satellite
+// image rather than a washed-out tint, while still letting the basemap's
+// graticule show through faintly.
+const HEATMAP_OPACITY = 0.92;
+
 function interpolateSstColor(t) {
-  const n = SST_COLOR_STOPS.length - 1;
-  const scaled = Math.min(Math.max(t, 0), 1) * n;
-  const i = Math.min(Math.floor(scaled), n - 1);
-  const frac = scaled - i;
+  const x = Math.min(Math.max(t, 0), 1);
+  let i = 0;
+  while (i < SST_COLOR_STOPS.length - 2 && x > SST_COLOR_STOPS[i + 1][0]) i++;
   const c1 = SST_COLOR_STOPS[i];
   const c2 = SST_COLOR_STOPS[i + 1];
+  const frac = (x - c1[0]) / (c2[0] - c1[0]);
   return [
-    Math.round(c1[0] + (c2[0] - c1[0]) * frac),
     Math.round(c1[1] + (c2[1] - c1[1]) * frac),
     Math.round(c1[2] + (c2[2] - c1[2]) * frac),
+    Math.round(c1[3] + (c2[3] - c1[3]) * frac),
   ];
 }
 
+// Same stops, same positions — so the legend bar is always a faithful key to
+// what's drawn on the map.
 const SST_LEGEND_GRADIENT_CSS = `linear-gradient(90deg, ${SST_COLOR_STOPS
-  .map((c, i) => `rgb(${c[0]},${c[1]},${c[2]}) ${((i / (SST_COLOR_STOPS.length - 1)) * 100).toFixed(1)}%`)
+  .map(c => `rgb(${c[1]},${c[2]},${c[3]}) ${(c[0] * 100).toFixed(1)}%`)
   .join(', ')})`;
+
+// Catmull-Rom cubic through four samples — a smooth curve that passes exactly
+// through each real reading, rather than a hard step between them.
+function catmullRom(p0, p1, p2, p3, t) {
+  const a = -0.5 * p0 + 1.5 * p1 - 1.5 * p2 + 0.5 * p3;
+  const b = p0 - 2.5 * p1 + 2 * p2 - 0.5 * p3;
+  const c = -0.5 * p0 + 0.5 * p2;
+  return ((a * t + b) * t + c) * t + p1;
+}
+
+// Sampler over the real SST grid (flattened north-down). `mask` is 1 where the
+// file held an actual reading and 0 where it was null (land or missing), which
+// lets colour be interpolated from real readings ONLY — no averaging toward
+// the empty cells, so coastlines don't smear or darken.
+function createGridSampler(grid, mask, cols, rows) {
+  const idx = (j, r) => {
+    const jj = j < 0 ? 0 : j > cols - 1 ? cols - 1 : j;
+    const rr = r < 0 ? 0 : r > rows - 1 ? rows - 1 : r;
+    return rr * cols + jj;
+  };
+
+  // A Gaussian-blurred copy of the land/sea mask. Interpolating the raw 0/1
+  // mask and thresholding it reproduces the grid's own 0.25° staircase along
+  // every coast (each step is several screen pixels wide); blurring first and
+  // thresholding after rounds those steps into smooth curves. Cost of doing
+  // it: isolated single-cell islands fall below the threshold and get covered
+  // by the overlay — anything two cells or larger survives.
+  const SIGMA = 0.75;
+  const kernel = [];
+  for (let d = -2; d <= 2; d++) kernel.push(Math.exp(-(d * d) / (2 * SIGMA * SIGMA)));
+  const kernelSum = kernel.reduce((a, b) => a + b, 0);
+
+  const horizontal = new Float32Array(rows * cols);
+  const smooth = new Float32Array(rows * cols);
+  for (let r = 0; r < rows; r++) {
+    for (let j = 0; j < cols; j++) {
+      let acc = 0;
+      for (let d = -2; d <= 2; d++) acc += mask[idx(j + d, r)] * kernel[d + 2];
+      horizontal[r * cols + j] = acc / kernelSum;
+    }
+  }
+  for (let r = 0; r < rows; r++) {
+    for (let j = 0; j < cols; j++) {
+      let acc = 0;
+      for (let d = -2; d <= 2; d++) acc += horizontal[idx(j, r + d)] * kernel[d + 2];
+      smooth[r * cols + j] = acc / kernelSum;
+    }
+  }
+
+  // Smoothly-interpolated fraction of real data around a point. The caller
+  // thresholds this into the overlay's edge, which is what keeps coastlines
+  // crisp curves instead of either a 0.25° staircase or a blurry halo.
+  const coverage = (colF, rowF) => {
+    const j0 = Math.floor(colF);
+    const r0 = Math.floor(rowF);
+    const tx = colF - j0;
+    const ty = rowF - r0;
+    const c = [];
+    for (let m = -1; m <= 2; m++) {
+      c.push(catmullRom(
+        smooth[idx(j0 - 1, r0 + m)], smooth[idx(j0, r0 + m)],
+        smooth[idx(j0 + 1, r0 + m)], smooth[idx(j0 + 2, r0 + m)], tx,
+      ));
+    }
+    return catmullRom(c[0], c[1], c[2], c[3], ty);
+  };
+
+  const value = (colF, rowF) => {
+    const j0 = Math.floor(colF);
+    const r0 = Math.floor(rowF);
+    const tx = colF - j0;
+    const ty = rowF - r0;
+
+    let allReal = true;
+    for (let m = -1; m <= 2 && allReal; m++) {
+      for (let n = -1; n <= 2; n++) {
+        if (!mask[idx(j0 + n, r0 + m)]) { allReal = false; break; }
+      }
+    }
+
+    if (allReal) {
+      const c = [];
+      for (let m = -1; m <= 2; m++) {
+        c.push(catmullRom(
+          grid[idx(j0 - 1, r0 + m)], grid[idx(j0, r0 + m)],
+          grid[idx(j0 + 1, r0 + m)], grid[idx(j0 + 2, r0 + m)], tx,
+        ));
+      }
+      return catmullRom(c[0], c[1], c[2], c[3], ty);
+    }
+
+    // Within a cell of a coast or a data gap — blend only the real readings.
+    const ks = [idx(j0, r0), idx(j0 + 1, r0), idx(j0, r0 + 1), idx(j0 + 1, r0 + 1)];
+    const ws = [(1 - tx) * (1 - ty), tx * (1 - ty), (1 - tx) * ty, tx * ty];
+    let sum = 0;
+    let weight = 0;
+    for (let q = 0; q < 4; q++) {
+      if (mask[ks[q]]) { sum += grid[ks[q]] * ws[q]; weight += ws[q]; }
+    }
+    if (weight > 0) return sum / weight;
+
+    // Smoothing the coastline can carry the overlay's edge a fraction of a
+    // cell past the last real reading; take the nearest ones so the edge is
+    // coloured rather than punched through with holes.
+    for (let ring = 1; ring <= 2; ring++) {
+      let ringSum = 0;
+      let ringCount = 0;
+      for (let m = -ring; m <= ring; m++) {
+        for (let n = -ring; n <= ring; n++) {
+          const k = idx(j0 + n, r0 + m);
+          if (mask[k]) { ringSum += grid[k]; ringCount++; }
+        }
+      }
+      if (ringCount > 0) return ringSum / ringCount;
+    }
+    return null;
+  };
+
+  return { coverage, value };
+}
 
 export default function RealOceanMap({ depth, isSurface, selectedId, setSelectedId, arbitraryPoint, setArbitraryPoint, locations }) {
   const [mapPath, setMapPath] = useState('');
@@ -85,6 +227,16 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
   const [heatmapImageUrl, setHeatmapImageUrl] = useState(null);
   const [heatmapVisible, setHeatmapVisible] = useState(true);
 
+  // Real Argo float positions from the last 30 days — same "static snapshot,
+  // loaded once" pattern as the heatmap grid, generated by
+  // backend/generate_argo_points.py. null until the fetch settles (whether
+  // it finds floats or not); a failure here must never block the rest of the
+  // map, same as the heatmap. Off by default — it's supplementary context,
+  // not something every viewer needs cluttering the map immediately.
+  const [argoPoints, setArgoPoints] = useState(null);
+  const [argoPointsVisible, setArgoPointsVisible] = useState(false);
+  const [hoverArgoPoint, setHoverArgoPoint] = useState(null);
+
   const svgRef = useRef(null);
   const projectionRef = useRef(null);
 
@@ -93,16 +245,15 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
       .then(res => res.json())
       .then(topology => {
         // Tight projection over India, Bay of Bengal, Arabian Sea, and Indian Ocean.
-        // translate.y is shifted down from the naive center (250) to 370 so the
-        // real trained-model coverage's northern edge (30°N, both regions) stays
-        // inside the 0-500 viewBox — at the old value, the whole region above
-        // ~22°N (including the demo_5 marker at 23.93°N) rendered off-screen,
-        // unclickable. Verified: all 5 real markers and all 8 coverage-region
-        // corners now fall well inside the viewBox with margin on every edge.
+        // scale/translate are chosen so the real trained-model coverage region
+        // (5-30°N, 45-100°E) fills as much of the 800x500 viewBox as possible
+        // without clipping — verified directly: at this scale, all 5 real
+        // markers and all 8 coverage-region corners still fall inside the
+        // viewBox with margin (this is the max scale before any of them clip).
         const projection = d3Geo.geoEquirectangular()
           .center([77.5, -2.5])
-          .scale(600)
-          .translate([400, 370]);
+          .scale(810)
+          .translate([470.69, 532.74]);
 
         projectionRef.current = projection;
         const geoGenerator = d3Geo.geoPath().projection(projection);
@@ -124,18 +275,54 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
       })
       .then(data => {
         if (cancelled) return;
-        let min = Infinity, max = -Infinity;
+        const real = [];
         for (const row of data.values) {
           for (const v of row) {
             if (v === null || v === undefined) continue;
-            if (v < min) min = v;
-            if (v > max) max = v;
+            real.push(v);
           }
         }
-        if (!Number.isFinite(min) || !Number.isFinite(max)) throw new Error('Grid has no non-null values');
-        setHeatmapGrid({ ...data, min, max });
+        if (real.length === 0) throw new Error('Grid has no non-null values');
+        real.sort((a, b) => a - b);
+
+        // Colour-scale bounds come from the 1st/99th percentile of the real
+        // readings, not the outright min/max. The grid covers a land-inclusive
+        // box, so a handful of inland-water cells (a few high-altitude lakes
+        // near 28°N) sit ~12°C below anything in the sea and, used as the
+        // scale floor, flatten the entire ocean into one band of the palette.
+        // Values beyond these bounds still render — clamped to the end colour,
+        // which the legend labels as "≤"/"≥" so the scale is never misread.
+        const percentile = (q) => real[Math.min(real.length - 1, Math.max(0, Math.round(q * (real.length - 1))))];
+        setHeatmapGrid({
+          ...data,
+          min: real[0],
+          max: real[real.length - 1],
+          colorMin: percentile(0.01),
+          colorMax: percentile(0.99),
+        });
       })
       .catch(e => console.error('Could not load regional SST heatmap — continuing without it:', e));
+    return () => { cancelled = true; };
+  }, []);
+
+  // Load the real, static Argo float snapshot once — same pattern as the SST
+  // grid above (a periodically-refreshed file, not a live fetch). An empty
+  // points array is a genuine, valid outcome (no real float reported in the
+  // window) and is kept, not treated as a failure; only an actual fetch/parse
+  // error falls through to the catch, and even then the rest of the map keeps
+  // working exactly as without this layer.
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/data/recent_argo_points.json')
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        if (cancelled) return;
+        setArgoPoints(Array.isArray(data.points) ? data.points : []);
+      })
+      .catch(e => console.error('Could not load recent Argo float positions — continuing without it:', e));
     return () => { cancelled = true; };
   }, []);
 
@@ -144,49 +331,104 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
   // far cheaper than one SVG element per cell for a 100x220 grid, and (via
   // pointer-events: none on the <image> itself, set below) never intercepts
   // a click, so markers/click-anywhere/land-mass detection are untouched.
+  //
+  // Every output pixel is resampled directly from the real grid with a smooth
+  // (Catmull-Rom) interpolation between neighbouring readings, at twice the
+  // viewBox resolution so it stays sharp on high-DPI screens. Nothing is
+  // invented: the interpolation only ever passes through real values, and
+  // cells the file marked null stay out of the blend entirely. Doing the
+  // resample here — rather than drawing blocks and letting the browser
+  // upscale them — is what removes both the blocky edges and the soft,
+  // washed-out look of a double-resampled bitmap.
   useEffect(() => {
     if (!heatmapGrid || !mapPath || !projectionRef.current) return;
 
-    const { lat_min, lon_min, lat_step, lon_step, values, min, max } = heatmapGrid;
+    const { lat_min, lon_min, lat_max, lon_max, lat_step, lon_step, values, colorMin, colorMax } = heatmapGrid;
     const rows = values.length;
     const cols = rows > 0 ? values[0].length : 0;
     if (rows === 0 || cols === 0) return;
 
-    const bleed = 60;
-    const canvas = document.createElement('canvas');
-    canvas.width = 800 + bleed * 2;
-    canvas.height = 500 + bleed * 2;
-    const ctx = canvas.getContext('2d');
-    ctx.translate(bleed, bleed);
-
-    const range = max - min || 1;
+    const range = colorMax - colorMin || 1;
     const halfLat = lat_step / 2;
     const halfLon = lon_step / 2;
 
+    // Flatten to north-down order (row 0 of the file is the southernmost
+    // latitude, but row 0 of an image is its top edge).
+    const grid = new Float32Array(rows * cols);
+    const mask = new Uint8Array(rows * cols);
     for (let i = 0; i < rows; i++) {
-      const lat = lat_min + i * lat_step;
       const row = values[i];
+      const target = (rows - 1 - i) * cols;
       for (let j = 0; j < cols; j++) {
-        const value = row[j];
-        if (value === null || value === undefined) continue; // land/missing — transparent, not colored
-
-        const lon = lon_min + j * lon_step;
-        const tl = projectionRef.current([lon - halfLon, lat + halfLat]);
-        const br = projectionRef.current([lon + halfLon, lat - halfLat]);
-        if (!tl || !br) continue;
-
-        const [r, g, b] = interpolateSstColor((value - min) / range);
-        ctx.fillStyle = `rgba(${r},${g},${b},0.72)`;
-
-        const x0 = Math.min(tl[0], br[0]);
-        const y0 = Math.min(tl[1], br[1]);
-        const w = Math.abs(br[0] - tl[0]);
-        const h = Math.abs(br[1] - tl[1]);
-        ctx.fillRect(x0, y0, w + 0.8, h + 0.8); // +0.8 avoids subpixel seams between cells
+        const v = row[j];
+        if (v === null || v === undefined) continue; // land/missing — stays masked out
+        grid[target + j] = v;
+        mask[target + j] = 1;
       }
     }
+    const sampler = createGridSampler(grid, mask, cols, rows);
 
-    setHeatmapImageUrl(canvas.toDataURL());
+    // The map's projection is equirectangular, so the grid's real-world extent
+    // maps to one axis-aligned rectangle — projecting its two outer corners is
+    // enough to place every cell.
+    const nw = projectionRef.current([lon_min - halfLon, lat_max + halfLat]);
+    const se = projectionRef.current([lon_max + halfLon, lat_min - halfLat]);
+    if (!nw || !se) return;
+    const cellW = (se[0] - nw[0]) / cols;
+    const cellH = (se[1] - nw[1]) / rows;
+    if (!(cellW > 0) || !(cellH > 0)) return;
+
+    const bleed = 60;
+    const oversample = 2;
+    const canvas = document.createElement('canvas');
+    canvas.width = (800 + bleed * 2) * oversample;
+    canvas.height = (500 + bleed * 2) * oversample;
+    const ctx = canvas.getContext('2d');
+    const image = ctx.createImageData(canvas.width, canvas.height);
+    const data = image.data;
+
+    // Only the grid's own footprint needs visiting; everything else stays
+    // transparent.
+    const startX = Math.max(0, Math.floor((nw[0] + bleed) * oversample));
+    const endX = Math.min(canvas.width, Math.ceil((se[0] + bleed) * oversample));
+    const startY = Math.max(0, Math.floor((nw[1] + bleed) * oversample));
+    const endY = Math.min(canvas.height, Math.ceil((se[1] + bleed) * oversample));
+
+    for (let py = startY; py < endY; py++) {
+      const rowF = ((py + 0.5) / oversample - bleed - nw[1]) / cellH - 0.5;
+      const rowOffset = py * canvas.width;
+      for (let px = startX; px < endX; px++) {
+        const colF = ((px + 0.5) / oversample - bleed - nw[0]) / cellW - 0.5;
+
+        // Threshold the smoothed coverage into a crisp, anti-aliased edge.
+        const edge = (sampler.coverage(colF, rowF) - 0.44) / 0.12;
+        if (edge <= 0) continue;
+
+        const value = sampler.value(colF, rowF);
+        if (value === null) continue;
+
+        const [r, g, b] = interpolateSstColor((value - colorMin) / range);
+        const k = (rowOffset + px) * 4;
+        data[k] = r;
+        data[k + 1] = g;
+        data[k + 2] = b;
+        data[k + 3] = Math.round(Math.min(1, edge) * HEATMAP_OPACITY * 255);
+      }
+    }
+    ctx.putImageData(image, 0, 0);
+
+    let cancelled = false;
+    let objectUrl = null;
+    canvas.toBlob((blob) => {
+      if (cancelled || !blob) return;
+      objectUrl = URL.createObjectURL(blob);
+      setHeatmapImageUrl(objectUrl);
+    });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
   }, [heatmapGrid, mapPath]);
 
   useEffect(() => {
@@ -257,23 +499,56 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
   const findNearbyMarkers = (x, y) =>
     markers.filter(m => Math.hypot(m.x - x, m.y - y) < MARKER_HIT_RADIUS);
 
+  // Real Argo float positions, projected the same way as the 5 known
+  // markers. Rendered with pointer-events: none (same as the heatmap image)
+  // so they can never intercept a click — hover is hand-detected here from
+  // the same pointer coordinates already computed for known-marker hover.
+  const argoMarkers = (argoPoints && projectionRef.current)
+    ? argoPoints.map(p => {
+        const proj = projectionRef.current([p.lon, p.lat]);
+        return proj ? { ...p, x: proj[0], y: proj[1] } : null;
+      }).filter(Boolean)
+    : [];
+
+  const findNearestArgoPoint = (x, y) => {
+    let nearest = null;
+    let nearestDist = ARGO_HIT_RADIUS;
+    argoMarkers.forEach(p => {
+      const dist = Math.hypot(p.x - x, p.y - y);
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        nearest = p;
+      }
+    });
+    return nearest;
+  };
+
   const handlePointer = (e) => {
     if (e.target.classList.contains('land-mass')) {
       setHoverMarker(null);
+      setHoverArgoPoint(null);
       return;
     }
 
     const coordinates = getMapCoordinates(e);
     if (!coordinates) {
       setHoverMarker(null);
+      setHoverArgoPoint(null);
       return;
     }
 
-    setHoverMarker(findNearestMarker(coordinates.x, coordinates.y));
+    // A known marker always takes priority over an Argo dot when both are
+    // within reach of the pointer.
+    const nearestKnown = findNearestMarker(coordinates.x, coordinates.y);
+    setHoverMarker(nearestKnown);
+    setHoverArgoPoint(
+      !nearestKnown && argoPointsVisible ? findNearestArgoPoint(coordinates.x, coordinates.y) : null
+    );
   };
 
   const handlePointerLeave = () => {
     setHoverMarker(null);
+    setHoverArgoPoint(null);
   };
 
   const selectKnownMarker = (id) => {
@@ -342,6 +617,15 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
             SST
           </button>
         )}
+        {argoPoints && (
+          <button
+            className={`heatmap-toggle ${argoPointsVisible ? 'active' : ''}`}
+            onClick={() => setArgoPointsVisible(v => !v)}
+            title={argoPointsVisible ? 'Hide real Argo float positions' : 'Show real Argo float positions (last 30 days)'}
+          >
+            ARGO
+          </button>
+        )}
       </div>
 
       <div className="map-canvas">
@@ -395,6 +679,23 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
              />
            )}
 
+           {/* Real Argo float positions, last 30 days — honest visual context
+               only, never a prediction target. pointer-events: none so they
+               can never intercept a click (hover is hand-detected above);
+               visually beneath the 5 known markers so those stay the clear
+               primary interaction. */}
+           {argoPointsVisible && argoMarkers.map(p => (
+             <circle
+               key={p.float_id}
+               cx={p.x} cy={p.y}
+               r={hoverArgoPoint?.float_id === p.float_id ? 3.5 : 2.2}
+               fill="none"
+               stroke="rgba(238, 250, 255, 0.65)"
+               strokeWidth={hoverArgoPoint?.float_id === p.float_id ? 1.1 : 0.7}
+               style={{ pointerEvents: 'none' }}
+             />
+           ))}
+
            {/* The 5 real model-output locations */}
            {markers.map(m => (
              <g
@@ -436,6 +737,18 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
                <text x="10" y="74" fill="#fff" fontSize="9" fontWeight="bold">
                  {hoverResult ? `${hoverResult.surface_state.sst_c.toFixed(2)}°C` : "…"}
                </text>
+             </g>
+           )}
+
+           {/* Tooltip for a hovered real Argo float dot — position and real
+               report date only, no temperature (this snapshot doesn't carry
+               one); never implies a prediction or a validation of anything. */}
+           {hoverArgoPoint && (
+             <g transform={`translate(${hoverArgoPoint.x + 12}, ${hoverArgoPoint.y + 12})`} style={{ pointerEvents: 'none' }}>
+               <rect width="128" height="46" fill="rgba(1, 7, 14, 0.9)" stroke="rgba(238, 250, 255, 0.4)" strokeWidth="0.5" rx="2" />
+               <text x="9" y="16" fill="rgba(238, 250, 255, 0.7)" fontSize="6.5" letterSpacing="0.05em">REAL ARGO FLOAT</text>
+               <text x="9" y="29" fill="#fff" fontSize="8" fontWeight="bold">{hoverArgoPoint.date}</text>
+               <text x="9" y="40" fill="rgba(238, 250, 255, 0.55)" fontSize="6.5">{hoverArgoPoint.region}</text>
              </g>
            )}
 
@@ -482,9 +795,9 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
             SEA SURFACE TEMPERATURE — {heatmapGrid.date}, VIA SATELLITE (COPERNICUS MARINE)
           </div>
           <div className="legend-bar-row">
-            <span className="legend-tick">{heatmapGrid.min.toFixed(1)}°C</span>
+            <span className="legend-tick">≤{heatmapGrid.colorMin.toFixed(1)}°C</span>
             <div className="legend-gradient" style={{ background: SST_LEGEND_GRADIENT_CSS }} />
-            <span className="legend-tick">{heatmapGrid.max.toFixed(1)}°C</span>
+            <span className="legend-tick">≥{heatmapGrid.colorMax.toFixed(1)}°C</span>
           </div>
         </div>
       )}
@@ -493,7 +806,13 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
         .ocean-map-container {
           position: relative;
           width: 100%;
-          height: 100%;
+          /* Match the SVG's own 800x500 (8:5) viewBox shape exactly, instead
+             of stretching to fill the tall AnalysisPanel sibling's height —
+             that mismatch (container forced near-square, viewBox landscape)
+             is what was causing the large black letterboxed bars above and
+             below the map. */
+          aspect-ratio: 8 / 5;
+          height: auto;
           border: 1px solid rgba(120, 203, 233, 0.15);
           border-radius: 4px;
           background: #01070e;
@@ -559,8 +878,17 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
         }
 
         .land-mass {
-          fill: #061e33;
-          stroke: #104c73;
+          fill: #0a2740;
+          /* Stroked in the fill colour on purpose, so land renders as one
+             continuous silhouette with no internal political boundaries.
+             The bundled Natural Earth basemap draws Kashmir split along the
+             Line of Control and Aksai Chin as Chinese territory, which is not
+             a boundary this map should be asserting; it ships no India-POV
+             alternative, so rather than depict it wrongly the map depicts no
+             political boundaries at all. (The stroke also closes the hairline
+             seams between adjacent country polygons.) Coastlines stay legible
+             because the ocean side of them carries the SST overlay. */
+          stroke: #0a2740;
           stroke-width: 0.5;
           pointer-events: auto; /* Swallows mouse events above ocean */
         }
@@ -603,6 +931,10 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
           font-size: 0.55rem !important;
           letter-spacing: 0.08em;
           font-weight: 600;
+          width: auto;
+          height: 28px;
+          padding: 0 0.5rem;
+          white-space: nowrap;
         }
 
         .heatmap-toggle.active {

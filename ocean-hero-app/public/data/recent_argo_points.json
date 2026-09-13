@@ -1,0 +1,839 @@
+{
+  "generated_at": "2026-09-13T15:07:57+00:00",
+  "window_days": 30,
+  "points": [
+    {
+      "float_id": "1902673",
+      "lat": 11.922,
+      "lon": 70.635,
+      "date": "2026-08-21",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "7902287",
+      "lat": 9.451,
+      "lon": 69.836,
+      "date": "2026-08-22",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "5907085",
+      "lat": 8.367,
+      "lon": 68.533,
+      "date": "2026-08-22",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "2903989",
+      "lat": 10.6,
+      "lon": 83.683,
+      "date": "2026-08-22",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "3902669",
+      "lat": 17.833,
+      "lon": 63.95,
+      "date": "2026-08-22",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "1902671",
+      "lat": 17.967,
+      "lon": 69.15,
+      "date": "2026-08-24",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "4903775",
+      "lat": 14.35,
+      "lon": 88.083,
+      "date": "2026-08-24",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "1902672",
+      "lat": 17.646,
+      "lon": 64.666,
+      "date": "2026-08-25",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "7901125",
+      "lat": 15.433,
+      "lon": 92.7,
+      "date": "2026-08-25",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "1902845",
+      "lat": 10.772,
+      "lon": 68.262,
+      "date": "2026-08-29",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "3902573",
+      "lat": 11.071,
+      "lon": 69.804,
+      "date": "2026-08-29",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "6990612",
+      "lat": 13.35,
+      "lon": 67.1,
+      "date": "2026-08-30",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "5907327",
+      "lat": 15.767,
+      "lon": 63.117,
+      "date": "2026-08-30",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "6990716",
+      "lat": 11.35,
+      "lon": 67.517,
+      "date": "2026-08-30",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "7902200",
+      "lat": 5.944,
+      "lon": 69.713,
+      "date": "2026-09-01",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "3902750",
+      "lat": 8.228,
+      "lon": 61.508,
+      "date": "2026-09-01",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "5907253",
+      "lat": 9.634,
+      "lon": 61.951,
+      "date": "2026-09-01",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "3902751",
+      "lat": 10.164,
+      "lon": 61.917,
+      "date": "2026-09-02",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "2904140",
+      "lat": 11.365,
+      "lon": 66.864,
+      "date": "2026-09-02",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "5907082",
+      "lat": 14.767,
+      "lon": 82.883,
+      "date": "2026-09-02",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "5907254",
+      "lat": 13.583,
+      "lon": 61.417,
+      "date": "2026-09-02",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "7902383",
+      "lat": 13.251,
+      "lon": 63.765,
+      "date": "2026-09-02",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "6990715",
+      "lat": 11.75,
+      "lon": 68.95,
+      "date": "2026-09-02",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "2903142",
+      "lat": 12.277,
+      "lon": 62.681,
+      "date": "2026-09-03",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "2904141",
+      "lat": 9.917,
+      "lon": 64.917,
+      "date": "2026-09-03",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "2902771",
+      "lat": 5.956,
+      "lon": 74.969,
+      "date": "2026-09-03",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "1901897",
+      "lat": 17.907,
+      "lon": 62.043,
+      "date": "2026-09-03",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "5907083",
+      "lat": 12.397,
+      "lon": 88.933,
+      "date": "2026-09-03",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "1902669",
+      "lat": 14.255,
+      "lon": 91.261,
+      "date": "2026-09-03",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "2903149",
+      "lat": 9.938,
+      "lon": 57.756,
+      "date": "2026-09-03",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "3902754",
+      "lat": 13.321,
+      "lon": 62.4,
+      "date": "2026-09-03",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "1902594",
+      "lat": 9.112,
+      "lon": 86.795,
+      "date": "2026-09-03",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "5907326",
+      "lat": 19.785,
+      "lon": 64.955,
+      "date": "2026-09-04",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "6990700",
+      "lat": 24.174,
+      "lon": 58.234,
+      "date": "2026-09-04",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "5907084",
+      "lat": 17.067,
+      "lon": 64.983,
+      "date": "2026-09-04",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "7901128",
+      "lat": 15.796,
+      "lon": 65.256,
+      "date": "2026-09-04",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "6990610",
+      "lat": 21.667,
+      "lon": 62.767,
+      "date": "2026-09-04",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "2904142",
+      "lat": 11.623,
+      "lon": 62.664,
+      "date": "2026-09-05",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "4903776",
+      "lat": 10.6,
+      "lon": 88.65,
+      "date": "2026-09-05",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "7901126",
+      "lat": 13.667,
+      "lon": 91.583,
+      "date": "2026-09-05",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "2903891",
+      "lat": 10.041,
+      "lon": 88.868,
+      "date": "2026-09-05",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "5907152",
+      "lat": 16.536,
+      "lon": 91.767,
+      "date": "2026-09-06",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "6990514",
+      "lat": 15.008,
+      "lon": 62.871,
+      "date": "2026-09-06",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "4903660",
+      "lat": 15.816,
+      "lon": 62.666,
+      "date": "2026-09-06",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "4904036",
+      "lat": 13.103,
+      "lon": 63.534,
+      "date": "2026-09-06",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "1902660",
+      "lat": 23.916,
+      "lon": 61.659,
+      "date": "2026-09-06",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "1902286",
+      "lat": 5.524,
+      "lon": 58.002,
+      "date": "2026-09-06",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "6990705",
+      "lat": 6.927,
+      "lon": 83.032,
+      "date": "2026-09-06",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "6990611",
+      "lat": 21.167,
+      "lon": 67.183,
+      "date": "2026-09-06",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "6990609",
+      "lat": 5.217,
+      "lon": 81.1,
+      "date": "2026-09-06",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "5907180",
+      "lat": 17.23,
+      "lon": 70.708,
+      "date": "2026-09-06",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "7901127",
+      "lat": 12.167,
+      "lon": 91.567,
+      "date": "2026-09-06",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "7902458",
+      "lat": 16.817,
+      "lon": 65.75,
+      "date": "2026-09-06",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "2903140",
+      "lat": 7.741,
+      "lon": 68.576,
+      "date": "2026-09-06",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "3902755",
+      "lat": 14.773,
+      "lon": 63.41,
+      "date": "2026-09-07",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "1902373",
+      "lat": 14.375,
+      "lon": 92.02,
+      "date": "2026-09-07",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "2903138",
+      "lat": 6.488,
+      "lon": 64.11,
+      "date": "2026-09-07",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "2903831",
+      "lat": 17.052,
+      "lon": 89.375,
+      "date": "2026-09-07",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "1902755",
+      "lat": 14.776,
+      "lon": 69.574,
+      "date": "2026-09-07",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "5907167",
+      "lat": 14.776,
+      "lon": 69.574,
+      "date": "2026-09-07",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "4903783",
+      "lat": 5.441,
+      "lon": 70.197,
+      "date": "2026-09-07",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "5907092",
+      "lat": 13.911,
+      "lon": 62.609,
+      "date": "2026-09-07",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "4903777",
+      "lat": 8.535,
+      "lon": 64.768,
+      "date": "2026-09-07",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "5907171",
+      "lat": 14.222,
+      "lon": 85.806,
+      "date": "2026-09-07",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "2903892",
+      "lat": 16.15,
+      "lon": 86.867,
+      "date": "2026-09-07",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "6990608",
+      "lat": 8.2,
+      "lon": 86.217,
+      "date": "2026-09-07",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "4903869",
+      "lat": 15.317,
+      "lon": 89.367,
+      "date": "2026-09-07",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "7902459",
+      "lat": 16.983,
+      "lon": 68.0,
+      "date": "2026-09-07",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "4903793",
+      "lat": 5.307,
+      "lon": 91.934,
+      "date": "2026-09-07",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "1902681",
+      "lat": 8.865,
+      "lon": 82.622,
+      "date": "2026-09-07",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "7902069",
+      "lat": 13.413,
+      "lon": 84.78,
+      "date": "2026-09-08",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "2902770",
+      "lat": 8.969,
+      "lon": 85.866,
+      "date": "2026-09-08",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "2902772",
+      "lat": 11.604,
+      "lon": 83.653,
+      "date": "2026-09-08",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "2902768",
+      "lat": 11.358,
+      "lon": 81.408,
+      "date": "2026-09-08",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "2903137",
+      "lat": 5.843,
+      "lon": 49.179,
+      "date": "2026-09-08",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "4903973",
+      "lat": 16.775,
+      "lon": 66.018,
+      "date": "2026-09-08",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "7902073",
+      "lat": 17.668,
+      "lon": 88.209,
+      "date": "2026-09-08",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "2902936",
+      "lat": 13.909,
+      "lon": 63.415,
+      "date": "2026-09-08",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "1902756",
+      "lat": 16.815,
+      "lon": 56.388,
+      "date": "2026-09-08",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "7901136",
+      "lat": 15.704,
+      "lon": 68.511,
+      "date": "2026-09-08",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "5907179",
+      "lat": 10.261,
+      "lon": 60.803,
+      "date": "2026-09-08",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "2903434",
+      "lat": 12.698,
+      "lon": 87.119,
+      "date": "2026-09-08",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "1902844",
+      "lat": 9.853,
+      "lon": 65.997,
+      "date": "2026-09-08",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "2903988",
+      "lat": 12.73,
+      "lon": 88.895,
+      "date": "2026-09-08",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "2903895",
+      "lat": 10.9,
+      "lon": 57.817,
+      "date": "2026-09-08",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "7901016",
+      "lat": 13.077,
+      "lon": 60.664,
+      "date": "2026-09-08",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "4903794",
+      "lat": 7.743,
+      "lon": 85.346,
+      "date": "2026-09-08",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "1902751",
+      "lat": 22.154,
+      "lon": 65.245,
+      "date": "2026-09-09",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "1902289",
+      "lat": 5.555,
+      "lon": 67.622,
+      "date": "2026-09-09",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "1902482",
+      "lat": 5.06,
+      "lon": 69.012,
+      "date": "2026-09-09",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "3902657",
+      "lat": 20.22,
+      "lon": 64.087,
+      "date": "2026-09-09",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "4903972",
+      "lat": 9.119,
+      "lon": 62.865,
+      "date": "2026-09-09",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "2904082",
+      "lat": 10.267,
+      "lon": 63.433,
+      "date": "2026-09-09",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "5907140",
+      "lat": 5.689,
+      "lon": 82.503,
+      "date": "2026-09-09",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "7902248",
+      "lat": 11.1,
+      "lon": 86.95,
+      "date": "2026-09-09",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "3902753",
+      "lat": 16.42,
+      "lon": 65.29,
+      "date": "2026-09-09",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "1902367",
+      "lat": 5.731,
+      "lon": 88.848,
+      "date": "2026-09-09",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "1901898",
+      "lat": 15.639,
+      "lon": 60.125,
+      "date": "2026-09-09",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "7902384",
+      "lat": 15.795,
+      "lon": 66.323,
+      "date": "2026-09-09",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "2904083",
+      "lat": 9.611,
+      "lon": 62.417,
+      "date": "2026-09-10",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "4904037",
+      "lat": 14.25,
+      "lon": 63.283,
+      "date": "2026-09-10",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "2902306",
+      "lat": 20.98,
+      "lon": 60.882,
+      "date": "2026-09-10",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "1902670",
+      "lat": 11.217,
+      "lon": 80.317,
+      "date": "2026-09-10",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "7902385",
+      "lat": 16.036,
+      "lon": 67.435,
+      "date": "2026-09-10",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "7902249",
+      "lat": 13.667,
+      "lon": 81.433,
+      "date": "2026-09-10",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "7902251",
+      "lat": 10.35,
+      "lon": 88.967,
+      "date": "2026-09-10",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "1902862",
+      "lat": 7.878,
+      "lon": 73.516,
+      "date": "2026-09-10",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "1902457",
+      "lat": 5.38,
+      "lon": 71.002,
+      "date": "2026-09-11",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "1902458",
+      "lat": 10.27,
+      "lon": 63.045,
+      "date": "2026-09-11",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "1902734",
+      "lat": 19.266,
+      "lon": 59.16,
+      "date": "2026-09-11",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "4903839",
+      "lat": 22.51,
+      "lon": 66.142,
+      "date": "2026-09-12",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "2902766",
+      "lat": 17.26,
+      "lon": 89.597,
+      "date": "2026-09-12",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "2902765",
+      "lat": 10.39,
+      "lon": 88.411,
+      "date": "2026-09-12",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "5907086",
+      "lat": 5.081,
+      "lon": 85.617,
+      "date": "2026-09-12",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "2902775",
+      "lat": 7.319,
+      "lon": 88.82,
+      "date": "2026-09-12",
+      "region": "Bay of Bengal"
+    },
+    {
+      "float_id": "2903955",
+      "lat": 23.58,
+      "lon": 61.095,
+      "date": "2026-09-12",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "2903147",
+      "lat": 12.091,
+      "lon": 59.277,
+      "date": "2026-09-13",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "5907141",
+      "lat": 25.407,
+      "lon": 58.394,
+      "date": "2026-09-13",
+      "region": "Arabian Sea"
+    },
+    {
+      "float_id": "2903956",
+      "lat": 19.72,
+      "lon": 62.627,
+      "date": "2026-09-13",
+      "region": "Arabian Sea"
+    }
+  ]
+}

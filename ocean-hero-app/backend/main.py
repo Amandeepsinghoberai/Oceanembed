@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 import json
-from live_predict import predict_live_streaming
+from live_predict import predict_live_streaming, get_ocean_state
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -22,3 +22,12 @@ async def live_predict_stream(lat: float, lon: float):
             yield f"data: {json.dumps({'step': 'error', 'done': True, 'error': str(e)})}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+@app.get("/api/ocean-state")
+async def ocean_state(lat: float, lon: float):
+    # get_ocean_state() never raises — every field it can't real-fetch or
+    # compute is left as an honest null instead, so this real 5-90s live
+    # lookup always returns a normal 200 with the full response shape, even
+    # for a point outside all real model coverage (subsurface.valid: false).
+    return get_ocean_state(lat, lon)
