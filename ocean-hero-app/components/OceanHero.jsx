@@ -567,11 +567,11 @@ const MARKUP = `
             <img src="/oceanembed-logo-v2.png" alt="OceanEmbed Logo" style="height: 48px; width: auto; mix-blend-mode: screen;" />
           </button>
           <nav aria-label="Primary navigation">
-            <button data-depth="0" data-href="/">PLATFORM</button>
+            <button data-depth="0" data-href="/">EXPLORER</button>
             <button data-depth="440" data-href="/solution">SOLUTION</button>
-            <button data-depth="520" data-href="/technology">TECHNOLOGY</button>
+            <button data-depth="520" data-href="/intelligence">INTELLIGENCE</button>
+            <button data-depth="520" data-href="/technology">MODELS</button>
             <button data-depth="680" data-href="/data">DATA</button>
-            <button data-depth="920" data-href="/impact">IMPACT</button>
           </nav>
           <div class="nav-depth"><span></span><b>000m</b></div>
         </header>
@@ -728,7 +728,7 @@ body {
    more cinematic feel; lower for a snappier one. */
 .ocean-track {
   position: relative;
-  height: 7500vh;
+  height: 5500vh;
 }
 
 .ocean-stage {
@@ -993,7 +993,7 @@ body {
   max-height:72vh;
   transform:translate3d(0,calc(var(--panel-offset, 0%) + 6%),18px);
   opacity:0;
-  transition:opacity .7s cubic-bezier(.2,.8,.2,1),transform .9s cubic-bezier(.2,.8,.2,1);
+  transition:opacity .5s cubic-bezier(.2,.8,.2,1),transform .65s cubic-bezier(.2,.8,.2,1);
   z-index:2;
 }
 .story-panel.on {
@@ -1017,7 +1017,6 @@ body {
   font-weight:700;
   letter-spacing:-.02em;
   line-height:.88;
-  text-shadow:0 12px 50px rgba(0,0,0,.3);
 }
 .story-panel h1 { font-size:clamp(4rem,8vw,8rem); line-height:0.75; }
 .story-panel h2 { font-size:clamp(3rem,5.6vw,6rem); }
@@ -1032,7 +1031,6 @@ body {
   color:#d6effc;
   font-size:clamp(.92rem,1.15vw,1.08rem);
   line-height:1.65;
-  text-shadow:0 3px 22px rgba(0,0,0,.5);
 }
 .scroll-cue {
   display:flex;
@@ -1069,7 +1067,7 @@ body {
   position:absolute;
   inset:-70px -90px -70px -34px;
   z-index:-1;
-  background:radial-gradient(ellipse at left center,rgba(3,24,43,.30),transparent 70%);
+  background:transparent;
   pointer-events:none;
 }
 .problem-stack {
@@ -1327,7 +1325,7 @@ export default function OceanHero() {
         pxPerMetre: 2.6,    // ruler spacing, in viewBox units
         restEnd: 0.0,   // p: intro holds until here (now animates immediately)
         moveEnd: 0.18,  // p: boat stops sliding right, float starts diving
-        ease: 0.115,  // damping. lower = smoother + laggier
+        ease: 0.16,  // damping. lower = smoother + laggier
       };
       // Horizontal and vertical placement live in FX / FY further down —
       // they're fractions of the visible area, not fixed coordinates.
@@ -1586,7 +1584,7 @@ export default function OceanHero() {
         N.guide.style.opacity = (ease((p - M) / 0.12) * 0.9 * signalFade).toFixed(3);
 
         /* ---- depth cues --------------------------------------- */
-        N.deepFade.setAttribute('opacity', (clamp(depth / 900) * 0.85).toFixed(3));
+        N.deepFade.setAttribute('opacity', '0');
         N.skyDim.setAttribute('opacity', clamp(depth / 1100).toFixed(3));
         N.argoHalo.setAttribute('opacity', clamp((depth - 120) / 420).toFixed(3));
         N.rays.setAttribute('opacity', ((1 - clamp(depth / 260)) * surfaceOp).toFixed(3));

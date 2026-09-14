@@ -145,11 +145,13 @@ export default function OceanIntelligencePage() {
           margin: 0 0 0.3rem 0;
           letter-spacing: -0.02em;
           line-height: 1;
+          text-shadow: none;
         }
         .compact-header p {
           color: rgba(222, 244, 252, 0.75);
           font: 500 0.95rem var(--font-space-grotesk), sans-serif;
           margin: 0;
+          text-shadow: none;
         }
         .segmented-control-wrapper {
           display: flex;

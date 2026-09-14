@@ -38,12 +38,11 @@ export default function SiteNavbar() {
           />
         </Link>
         <nav aria-label="Primary navigation">
-          <Link href="/" prefetch={true} className={pathname === "/" ? "active" : ""}>PLATFORM</Link>
+          <Link href="/" prefetch={true} className={pathname === "/" ? "active" : ""}>EXPLORER</Link>
           <Link href="/solution" prefetch={true} className={pathname === "/solution" ? "active" : ""}>SOLUTION</Link>
           <Link href="/intelligence" prefetch={true} className={pathname === "/intelligence" ? "active" : ""}>INTELLIGENCE</Link>
-          <Link href="/technology" prefetch={true} className={pathname === "/technology" ? "active" : ""}>TECHNOLOGY</Link>
+          <Link href="/technology" prefetch={true} className={pathname === "/technology" ? "active" : ""}>MODELS</Link>
           <Link href="/data" prefetch={true} className={pathname === "/data" ? "active" : ""}>ABOUT US</Link>
-          <Link href="/impact" prefetch={true} className={pathname === "/impact" ? "active" : ""}>IMPACT</Link>
         </nav>
         <div className="nav-depth" style={{ opacity: 0, pointerEvents: 'none', visibility: 'hidden' }}>
           <span></span><b>000m</b>

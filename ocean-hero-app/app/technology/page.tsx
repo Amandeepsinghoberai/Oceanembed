@@ -20,8 +20,16 @@ const evaluationDepths = [0, 50, 100, 200, 500, 1000];
 const metrics = [
   { short: "RMSE", title: "Root Mean Square Error", text: "Magnitude of reconstruction error between predicted and reference temperature.", bob: "0.637°C", as: "0.834°C" },
   { short: "CORRELATION", title: "Pearson Correlation", text: "How closely predicted temperature variations follow the reference field.", bob: "0.997", as: "0.988" },
-  { short: "BIAS", title: "Mean Prediction Error", text: "Whether the model systematically overestimates or underestimates temperature.", bob: null, as: null },
-  { short: "MAE", title: "Mean Absolute Error", text: "The average absolute difference between prediction and reference.", bob: null, as: null },
+  // Real per-point bias (predicted − ARGO, averaged across each profile's 15
+  // depths) from the 5 published example predictions' own saved metrics —
+  // public/data/demo_1.json (-0.229), demo_2.json (-0.53), demo_3.json
+  // (-0.395) for Bay of Bengal; demo_4.json (-0.594), demo_5.json (+0.725)
+  // for Arabian Sea. Averaged per region: BoB (-0.229-0.53-0.395)/3 =
+  // -0.385°C; AS (-0.594+0.725)/2 = +0.066°C. This is a real, traceable
+  // number, but from only 3 / 2 examples — not the same sample size as the
+  // pooled RMSE/Correlation above (30,019 / 2,129,593 measurements) — so
+  // it's captioned as such rather than presented as equivalent.
+  { short: "BIAS", title: "Mean Prediction Error", text: "Whether the model systematically overestimates or underestimates temperature.", bob: "-0.385°C", as: "+0.066°C", note: "Avg. of published example predictions (BoB n=3, AS n=2) — not the full validation sample RMSE/Correlation above are drawn from." },
 ];
 
 // Real, validated per-depth evaluation results (RMSE °C, Pearson correlation)
@@ -48,9 +56,9 @@ function formatCount(n: number): string {
   return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-const REGION_SUMMARY: Record<string, { rmse: number; correlation: number; n: number; inputs: string[]; clusters: number }> = {
-  "BAY OF BENGAL": { rmse: 0.637, correlation: 0.997, n: 30019, inputs: ["SST", "SSH"], clusters: 5 },
-  "ARABIAN SEA": { rmse: 0.834, correlation: 0.988, n: 2129593, inputs: ["SST", "SSH", "Wind Stress Curl", "MLD", "SSS", "Eddy Vorticity"], clusters: 10 },
+const REGION_SUMMARY: Record<string, { rmse: number; correlation: number; n: number; inputs: string[]; clusters: number; bias: number }> = {
+  "BAY OF BENGAL": { rmse: 0.637, correlation: 0.997, n: 30019, inputs: ["SST", "SSH"], clusters: 5, bias: -0.385 },
+  "ARABIAN SEA": { rmse: 0.834, correlation: 0.988, n: 2129593, inputs: ["SST", "SSH", "Wind Stress Curl", "MLD", "SSS", "Eddy Vorticity"], clusters: 10, bias: 0.066 },
 };
 
 const uncertaintyFindings = [
@@ -58,7 +66,7 @@ const uncertaintyFindings = [
   "Error peaks in the thermocline, not at depth: Bay of Bengal peaks at 100 m (RMSE 1.464°C), Arabian Sea at 75 m (RMSE 1.351°C) — where vertical gradients are steepest.",
   "Deep water is easier, not harder, to reconstruct: below 500 m, Bay of Bengal falls to 0.163–0.202°C and Arabian Sea to 0.431–0.540°C.",
   "Arabian Sea error runs 2–5× higher than Bay of Bengal at nearly every depth — why its model adds four predictors beyond SST/SSH and clusters into 10 regions instead of 5.",
-  "Per-point bias is computed for every prediction (see the 5 live examples on /solution) but isn't yet published as a regional aggregate.",
+  "Bay of Bengal runs cold (-0.385°C avg.) and Arabian Sea runs close to neutral (+0.066°C avg.), averaged across the 5 published example predictions on /solution — not yet a full-validation-sample aggregate.",
 ];
 
 function SectionHeading({ title, children }: { title: string; children?: React.ReactNode }) {
@@ -81,7 +89,7 @@ function PipelineFlashcard({ number, title, text, tags, emphasized }: { number: 
   );
 }
 
-function MetricBlock({ short, title, text, bob, as }: { short: string; title: string; text: string; bob: string | null; as: string | null }) {
+function MetricBlock({ short, title, text, bob, as, note }: { short: string; title: string; text: string; bob: string | null; as: string | null; note?: string }) {
   const reported = bob !== null && as !== null;
   return (
     <div className="metric-block">
@@ -90,6 +98,7 @@ function MetricBlock({ short, title, text, bob, as }: { short: string; title: st
         <div className="metric-values">
           <div><span>BAY OF BENGAL</span><strong>{bob}</strong></div>
           <div><span>ARABIAN SEA</span><strong>{as}</strong></div>
+          {note && <p className="metric-note">{note}</p>}
         </div>
       ) : (
         <>
@@ -273,7 +282,7 @@ export default function TechnologyPage() {
           <ArgoValidationSummary />
         </section>
 
-        <section className="regional-section dark-band"><div className="page-width"><SectionHeading title="WHERE THE MODEL PERFORMS">Regional comparisons distinguish reconstruction behavior across the two proof-of-concept regions.</SectionHeading><div className="region-tabs">{["BAY OF BENGAL", "ARABIAN SEA"].map(item => <button key={item} className={region === item ? "selected" : ""} onClick={() => setRegion(item)}>{item}</button>)}</div><div className="region-panel"><div><span className="panel-kicker">ACTIVE REGION</span><h3>{region}</h3><p>Final model: {summary.inputs.join(", ")} · {summary.clusters}-region clustering + bias correction.</p></div><div className="region-metrics"><div><span>RMSE</span><strong>{summary.rmse.toFixed(3)}°C</strong></div><div><span>BIAS</span><strong>—</strong><small>NOT REPORTED</small></div><div><span>CORRELATION</span><strong>{summary.correlation.toFixed(3)}</strong></div><div><span>ARGO VALIDATION COUNT</span><strong>{formatCount(summary.n)}</strong></div></div></div></div></section>
+        <section className="regional-section dark-band"><div className="page-width"><SectionHeading title="WHERE THE MODEL PERFORMS">Regional comparisons distinguish reconstruction behavior across the two proof-of-concept regions.</SectionHeading><div className="region-tabs">{["BAY OF BENGAL", "ARABIAN SEA"].map(item => <button key={item} className={region === item ? "selected" : ""} onClick={() => setRegion(item)}>{item}</button>)}</div><div className="region-panel"><div><span className="panel-kicker">ACTIVE REGION</span><h3>{region}</h3><p>Final model: {summary.inputs.join(", ")} · {summary.clusters}-region clustering + bias correction.</p></div><div className="region-metrics"><div><span>RMSE</span><strong>{summary.rmse.toFixed(3)}°C</strong></div><div><span>BIAS</span><strong>{summary.bias >= 0 ? "+" : ""}{summary.bias.toFixed(3)}°C</strong><small>AVG. OF EXAMPLES</small></div><div><span>CORRELATION</span><strong>{summary.correlation.toFixed(3)}</strong></div><div><span>ARGO VALIDATION COUNT</span><strong>{formatCount(summary.n)}</strong></div></div></div></div></section>
 
         <section className="uncertainty-section page-width"><SectionHeading title="UNDERSTANDING MODEL ERROR">Reconstruction skill is not uniform with depth or location. Validation against ARGO shows:</SectionHeading><div className="uncertainty-list">{uncertaintyFindings.map((item, index) => <div key={item}><span>0{index + 1}</span>{item}</div>)}</div></section>
 
@@ -360,7 +369,7 @@ const styles = `
   .architecture-node b { position: absolute; top: 50%; right: -.55rem; z-index: 1; padding: 0 .25rem; color: #7ce0d0; background: #0a3854; font-size: 1.2rem; font-weight: 400; }
   .technical-note { margin-top: 1.2rem; color: rgba(222, 244, 252, .55); font-size: .78rem; }
   .technical-note span { margin-right: .8rem; color: #7ce0d0; font: 600 .63rem var(--font-public-sans), sans-serif; letter-spacing: .12em; }
-  .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: rgba(174, 231, 246, .16); border: 1px solid rgba(174, 231, 246, .16); }
+  .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: rgba(174, 231, 246, .16); border: 1px solid rgba(174, 231, 246, .16); }
   .metric-block { min-height: 250px; padding: 1.4rem; background: #06213a; }
   .metric-block h3 { margin-top: .8rem; color: #eaf7ff; font-size: 1.02rem; font-weight: 500; }
   .metric-block p { min-height: 76px; margin-top: .8rem; color: rgba(222, 244, 252, .6); font-size: .8rem; line-height: 1.55; }
@@ -370,6 +379,7 @@ const styles = `
   .metric-values div { display: flex; align-items: baseline; justify-content: space-between; gap: .6rem; }
   .metric-values span { color: rgba(174, 231, 246, .6); font-size: .6rem; letter-spacing: .08em; }
   .metric-values strong { color: #7ce0d0; font: 500 1.15rem var(--font-space-grotesk), sans-serif; }
+  .metric-note { margin-top: .3rem; color: rgba(222, 244, 252, .48); font-size: .62rem; line-height: 1.45; }
   .chart-shell { padding: 1.5rem; border: 1px solid rgba(174, 231, 246, .18); background: rgba(1, 9, 18, .38); }
   .depth-rmse-chart { display: flex; flex-direction: column; gap: 1rem; }
   .depth-rmse-chart svg { display: block; width: 100%; height: auto; }

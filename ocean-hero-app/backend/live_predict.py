@@ -388,6 +388,7 @@ def predict_live(lat, lon):
 # ---------- Normalized ocean-state endpoint (Intelligence page) ----------
 
 CURRENT_DATASET_ID = "cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m"
+WIND_DATASET_ID = "cmems_obs-wind_glo_phy_nrt_l4_0.125deg_PT1H"
 
 
 def _surface_value(path, variable, lat, lon):
@@ -409,44 +410,60 @@ def _current_direction_deg(u, v):
     return (bearing + 360) % 360
 
 
-def get_ocean_state(lat, lon):
+def get_ocean_state_streaming(lat, lon):
     """
-    Powers GET /api/ocean-state — the one normalized response all 4
-    Intelligence modules consume (OceanEmbed_Intelligence_Data_Requirements.txt,
-    section 11). Reuses predict_live()'s region classification and subsurface
-    pipeline rather than duplicating it; adds live current U/V (not a model
-    input anywhere — real page context only), Bay-of-Bengal SSS as page
-    context, and the GLORYS climatology reference/anomaly wherever that file
-    actually covers. Every field is either a real fetched/computed value or
-    an honest null — never a fabricated number.
+    Streaming version of the /api/ocean-state pipeline — yields a status
+    message immediately AFTER each real step completes, same pattern (and,
+    for the shared subsurface/surface steps, the exact same step text) as
+    _predict_stream_generator()/predict_live_streaming() already use for the
+    Solution page's live mode. This is what lets the Intelligence page show
+    the same kind of real, honest progress checklist instead of a single
+    static "loading" label. Ends with the identical final response shape
+    get_ocean_state() returns, as {"step": "complete", "done": True, "result": ...}.
     """
     region = _classify_region(lat, lon)
 
     response = {
         "location": {"lat": lat, "lon": lon},
-        "surface": {"sst_c": None, "sss_psu": None, "current_u_ms": None, "current_v_ms": None, "ssh_m": None},
+        "surface": {
+            "sst_c": None, "sss_psu": None, "current_u_ms": None, "current_v_ms": None, "ssh_m": None,
+            "wind_u_ms": None, "wind_v_ms": None,
+        },
         "subsurface": {"source": "OceanEmbed", "depth_m": depths, "temperature_c": None, "valid": False},
         "reference": {"source": None, "temperature_c_by_depth": None, "same_depth": False},
         "derived": {
             "current_speed_ms": None, "current_direction_deg": None,
             "vertical_gradient_c_per_m": None, "temperature_anomaly_c": None,
+            "wind_speed_ms": None, "wind_direction_deg": None,
         },
         "provenance": [],
     }
 
     if region is None:
-        # No real model coverage at all here — fail fast and honestly rather
-        # than spending a real 5-90s fetch on a point we already know we
-        # can't serve (matches _classify_region's use everywhere else in
-        # this file as the single gate on real coverage).
-        return response
+        # No real model coverage at all here — same honest empty response as
+        # the non-streaming path, returned immediately rather than after a
+        # real 5-90s fetch we already know can't be served.
+        yield {"step": "complete", "done": True, "result": response}
+        return
 
     provenance = set()
     temps = None
 
-    # ---- Subsurface + base surface fields: reuse predict_live() exactly, no duplicated fetch/model logic ----
+    # ---- Subsurface + base surface fields: reuse _predict_stream_generator()
+    # directly (not predict_live()) so its real per-fetch step messages —
+    # "Fetching live sea surface temperature...", etc. — get forwarded as-is.
+    # A "done" update whose step is "error" means that fetch chain failed;
+    # swallowed here (base stays None) rather than treated as fatal, exactly
+    # like get_ocean_state()'s try/except already did — current/wind/
+    # climatology below are independent and still worth attempting. ----
+    base = None
     try:
-        base = predict_live(lat, lon)
+        for update in _predict_stream_generator(lat, lon, region):
+            if update.get("done"):
+                if update.get("step") != "error":
+                    base = update.get("result")
+            else:
+                yield update
     except Exception:
         base = None
 
@@ -464,6 +481,7 @@ def get_ocean_state(lat, lon):
 
     # ---- Bay of Bengal SSS: not a model input there, but real, live page context ----
     if region == "bay" and response["surface"]["sss_psu"] is None:
+        yield {"step": "Fetching live salinity data...", "done": False}
         try:
             sss_path, _ = _fetch_latest("cmems_obs-mob_glo_phy-sss_nrt_multi_P1D", "sos", lat, lon, "ocean_state_sss_bay.nc")
             response["surface"]["sss_psu"] = round(_surface_value(sss_path, "sos", lat, lon), 2)
@@ -472,6 +490,7 @@ def get_ocean_state(lat, lon):
             pass  # stays null — a real fetch failure, not fabricated
 
     # ---- Live current U/V: real page context, not a model input anywhere ----
+    yield {"step": "Fetching live ocean current data...", "done": False}
     try:
         u_path, _ = _fetch_latest(CURRENT_DATASET_ID, "uo", lat, lon, "ocean_state_current_u.nc", min_depth=0, max_depth=1)
         v_path, _ = _fetch_latest(CURRENT_DATASET_ID, "vo", lat, lon, "ocean_state_current_v.nc", min_depth=0, max_depth=1)
@@ -485,6 +504,24 @@ def get_ocean_state(lat, lon):
     except Exception:
         pass  # current stays null — a real fetch failure, not fabricated
 
+    # ---- Live wind U/V: real page context (Maritime route-planning use),
+    # not a model input anywhere. Same dataset already used for the Arabian
+    # model's wind-stress-curl input, different variables — same
+    # speed/direction math as current, reused rather than reimplemented. ----
+    yield {"step": "Fetching live wind data...", "done": False}
+    try:
+        wu_path, _ = _fetch_latest(WIND_DATASET_ID, "eastward_wind", lat, lon, "ocean_state_wind_u.nc", hourly=True)
+        wv_path, _ = _fetch_latest(WIND_DATASET_ID, "northward_wind", lat, lon, "ocean_state_wind_v.nc", hourly=True)
+        wu_val = _surface_value(wu_path, "eastward_wind", lat, lon)
+        wv_val = _surface_value(wv_path, "northward_wind", lat, lon)
+        response["surface"]["wind_u_ms"] = round(wu_val, 2)
+        response["surface"]["wind_v_ms"] = round(wv_val, 2)
+        response["derived"]["wind_speed_ms"] = round(float(np.hypot(wu_val, wv_val)), 2)
+        response["derived"]["wind_direction_deg"] = round(_current_direction_deg(wu_val, wv_val), 1)
+        provenance.add("CMEMS Wind")
+    except Exception:
+        pass  # wind stays null — a real fetch failure, not fabricated
+
     # ---- Vertical temperature gradient (only meaningful if subsurface is real) ----
     if temps is not None:
         response["derived"]["vertical_gradient_c_per_m"] = [
@@ -496,6 +533,7 @@ def get_ocean_state(lat, lon):
     # the climatology file's own real coverage — narrower than the model's
     # full 5-30N Bay region, checked explicitly rather than assumed) ----
     if region == "bay" and _climatology_da is not None and lat <= CLIMATOLOGY_LAT_MAX:
+        yield {"step": "Checking reference baseline...", "done": False}
         try:
             day_of_year = datetime.now(timezone.utc).timetuple().tm_yday
             ref_values = _climatology_da.sel(
@@ -518,7 +556,16 @@ def get_ocean_state(lat, lon):
             pass  # reference stays null — a real lookup failure, not fabricated
 
     response["provenance"] = sorted(provenance)
-    return response
+    yield {"step": "complete", "done": True, "result": response}
+
+
+def get_ocean_state(lat, lon):
+    """Plain (non-streaming) version — runs the generator to completion and
+    returns the final result, same relationship predict_live() already has
+    to predict_live_streaming()/_predict_stream_generator()."""
+    for update in get_ocean_state_streaming(lat, lon):
+        if update.get("done"):
+            return update.get("result")
 
 
 if __name__ == "__main__":

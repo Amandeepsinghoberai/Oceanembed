@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import OceanLocationMap from './OceanLocationMap';
-import { fetchOceanState } from '@/lib/fetchOceanState';
+import LiveStepsList from './LiveStepsList';
+import { useOceanState } from '@/lib/useOceanState';
 
 export default function OceanHealthModule() {
   const [selectedLocation, setSelectedLocation] = useState({
@@ -12,10 +13,6 @@ export default function OceanHealthModule() {
     regionName: 'Arabian Sea Core Region'
   });
   const [selectedDepthKey, setSelectedDepthKey] = useState('600-900');
-
-  const [isLoading, setIsLoading] = useState(true);
-  const [ocean, setOcean] = useState(null);
-  const [loadError, setLoadError] = useState(null);
 
   const presets = [
     { key: 'arabian-sea', name: 'Arabian Sea Core', lat: 15.0, lon: 64.96, regionName: 'Arabian Sea Core Region' },
@@ -36,36 +33,12 @@ export default function OceanHealthModule() {
 
   const activeDepth = depthConfig[selectedDepthKey];
 
-  // Real live data — a single normalized /api/ocean-state call, replacing
-  // the 5 dead local-file providers. Real 5-90s network call; isCurrent
-  // guards against a stale response landing after the location/depth
-  // selection has already moved on.
-  useEffect(() => {
-    let isCurrent = true;
-
-    async function loadData() {
-      setIsLoading(true);
-      setLoadError(null);
-      try {
-        const data = await fetchOceanState(selectedLocation.lat, selectedLocation.lon);
-        if (isCurrent) {
-          setOcean(data);
-          setIsLoading(false);
-        }
-      } catch (e) {
-        if (isCurrent) {
-          setLoadError(e.message || 'Could not reach the ocean-state service.');
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadData();
-
-    return () => {
-      isCurrent = false;
-    };
-  }, [selectedLocation]);
+  // Real live data — a single normalized /api/ocean-state stream, replacing
+  // the 5 dead local-file providers. Real 5-90s network calls; `steps`
+  // carries each real fetch's progress as it lands, same checklist the
+  // Solution page's live mode shows, so loading visibly shows real work
+  // happening instead of a single static "loading" label.
+  const { steps, ocean, loadError, isLoading } = useOceanState(selectedLocation.lat, selectedLocation.lon);
 
   // Compute Anomaly & Condition Status
   let tempDisplay = 'DATA UNAVAILABLE';
@@ -78,6 +51,18 @@ export default function OceanHealthModule() {
   let conditionStatus = 'INSUFFICIENT DATA';
   let statusClass = 'insufficient';
   let polylinePoints = '';
+
+  // Plain-language "what this means" for each status class, so a
+  // non-technical viewer understands what "anomaly" means here without
+  // this module overclaiming a specific cause (per spec section 6 —
+  // possible physical processes are hypotheses to investigate, not a
+  // diagnosis).
+  const STATUS_EXPLANATIONS = {
+    normal: 'Temperature at this depth is close to the expected seasonal average for this location and time of year.',
+    elevated: 'Temperature at this depth differs somewhat from the expected seasonal average — worth watching, not necessarily unusual.',
+    unusual: 'Temperature at this depth differs significantly from the expected seasonal average, which could indicate an eddy, upwelling, water-mass movement, or a marine heat event. This flags a physical difference, not a confirmed cause.',
+    insufficient: 'A real same-depth reference baseline isn’t available for this location, so no anomaly comparison can be shown honestly.',
+  };
 
   if (!isLoading && ocean) {
     const { surface, subsurface, reference, derived } = ocean;
@@ -243,6 +228,10 @@ export default function OceanHealthModule() {
                 {isLoading ? 'LOADING LIVE DATA...' : loadError ? 'LIVE DATA UNAVAILABLE' : conditionStatus}
               </span>
             </div>
+            {!isLoading && !loadError && (
+              <p className="status-explainer">{STATUS_EXPLANATIONS[statusClass]}</p>
+            )}
+            {isLoading && <LiveStepsList steps={steps} />}
           </div>
 
           {/* THERMAL PROFILE GRAPH */}
@@ -452,6 +441,12 @@ export default function OceanHealthModule() {
           display: flex;
           justify-content: space-between;
           align-items: center;
+        }
+        .status-explainer {
+          margin: 0.55rem 0 0 0;
+          color: rgba(222, 244, 252, 0.65);
+          font-size: 0.72rem;
+          line-height: 1.45;
         }
         .status-badge {
           display: inline-block;

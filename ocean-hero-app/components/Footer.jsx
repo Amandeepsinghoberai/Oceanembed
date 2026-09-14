@@ -30,9 +30,9 @@ export default function Footer() {
         <div className="footer-nav-groups">
           <div className="footer-nav-col">
             <h4>EXPLORE</h4>
-            <Link href="/">Platform</Link>
+            <Link href="/">Explorer</Link>
             <Link href="/solution">Solution</Link>
-            <Link href="/technology">Technology</Link>
+            <Link href="/technology">Models</Link>
           </div>
           <div className="footer-nav-col">
             <h4>OCEAN DATA</h4>
@@ -42,9 +42,8 @@ export default function Footer() {
           </div>
           <div className="footer-nav-col">
             <h4>RESOURCES</h4>
-            <Link href="/impact">About Us</Link>
+            <Link href="/data">About Us</Link>
             <Link href="/technology">Documentation</Link>
-            <Link href="/impact">Impact</Link>
           </div>
         </div>
 

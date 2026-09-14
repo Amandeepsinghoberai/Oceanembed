@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import OceanLocationMap from './OceanLocationMap';
-import { fetchOceanState } from '@/lib/fetchOceanState';
+import LiveStepsList from './LiveStepsList';
+import { streamOceanState } from '@/lib/useOceanState';
 import {
   calculateGeodesicDistance,
   sampleGreatCircleRoute,
@@ -27,6 +28,7 @@ export default function MaritimeModule() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [routeAnalysis, setRouteAnalysis] = useState(null);
   const [loadError, setLoadError] = useState(null);
+  const [analysisSteps, setAnalysisSteps] = useState([]);
 
   // Real current, fetched only at the route's origin and destination — not
   // per-sample along the whole route. /api/ocean-state is a real 5-90s live
@@ -44,6 +46,7 @@ export default function MaritimeModule() {
 
     setIsAnalyzing(true);
     setLoadError(null);
+    setAnalysisSteps([]);
 
     // Direct Great-Circle reference line
     const rawGreatCircle = sampleGreatCircleRoute(
@@ -83,17 +86,18 @@ export default function MaritimeModule() {
     );
     const distanceNmi = routeDistanceKm * 0.539957;
 
-    let originOcean = null;
-    let destOcean = null;
-    let fetchError = null;
-    try {
-      [originOcean, destOcean] = await Promise.all([
-        fetchOceanState(originLocation.lat, originLocation.lon),
-        fetchOceanState(destinationLocation.lat, destinationLocation.lon),
-      ]);
-    } catch (e) {
-      fetchError = e.message || 'Could not reach the ocean-state service.';
-    }
+    // Real per-fetch progress from both points, merged into one labeled
+    // checklist (same real step text /api/ocean-state/stream sends the
+    // other 3 modules) — so the console visibly shows real work happening
+    // at both A and B, not a single opaque "analyzing" spinner.
+    const appendStep = (label) => setAnalysisSteps((prev) => [...prev, label]);
+    const [originRes, destRes] = await Promise.all([
+      streamOceanState(originLocation.lat, originLocation.lon, (step) => appendStep(`ORIGIN (A) — ${step}`)),
+      streamOceanState(destinationLocation.lat, destinationLocation.lon, (step) => appendStep(`DESTINATION (B) — ${step}`)),
+    ]);
+    const originOcean = originRes.result;
+    const destOcean = destRes.result;
+    const fetchError = originRes.error || destRes.error || null;
 
     const originBearing = rawWaterSamples[0]?.bearingDeg ?? 0;
     const destBearing = rawWaterSamples[rawWaterSamples.length - 1]?.bearingDeg ?? 0;
@@ -109,6 +113,24 @@ export default function MaritimeModule() {
       endpointReadings.push({
         speed: destOcean.derived.current_speed_ms,
         alongRouteCurrent: calculateAlongRouteCurrent(destOcean.surface.current_u_ms, destOcean.surface.current_v_ms, destBearing),
+      });
+    }
+
+    // Real live wind at the same 2 points, same speed/direction math as
+    // current (reused, not reimplemented) — kept as its own clearly-labeled
+    // reading rather than folded into the current-effect score, so nobody
+    // has to guess what a combined number was actually measuring.
+    const windReadings = [];
+    if (originOcean?.surface?.wind_u_ms != null) {
+      windReadings.push({
+        speed: originOcean.derived.wind_speed_ms,
+        alongRouteWind: calculateAlongRouteCurrent(originOcean.surface.wind_u_ms, originOcean.surface.wind_v_ms, originBearing),
+      });
+    }
+    if (destOcean?.surface?.wind_u_ms != null) {
+      windReadings.push({
+        speed: destOcean.derived.wind_speed_ms,
+        alongRouteWind: calculateAlongRouteCurrent(destOcean.surface.wind_u_ms, destOcean.surface.wind_v_ms, destBearing),
       });
     }
 
@@ -134,6 +156,27 @@ export default function MaritimeModule() {
       }
     }
 
+    const validWindCount = windReadings.length;
+    let windEffect = 'DATA NOT AVAILABLE';
+    let windEffectClass = 'insufficient';
+    let meanWindSpeed = 0;
+
+    if (validWindCount > 0) {
+      meanWindSpeed = parseFloat((windReadings.reduce((s, r) => s + r.speed, 0) / validWindCount).toFixed(2));
+      const meanAlongWind = windReadings.reduce((s, r) => s + r.alongRouteWind, 0) / validWindCount;
+
+      if (meanAlongWind >= 0.5) {
+        windEffect = 'TAILWIND';
+        windEffectClass = 'favorable';
+      } else if (meanAlongWind <= -0.5) {
+        windEffect = 'HEADWIND';
+        windEffectClass = 'opposing';
+      } else {
+        windEffect = 'CROSSWIND';
+        windEffectClass = 'neutral';
+      }
+    }
+
     // Estimated transit time at standard 14 knots (25.9 km/h)
     let estTimeHours = null;
     if (routeDistanceKm > 0) {
@@ -155,6 +198,10 @@ export default function MaritimeModule() {
       meanAlongCurrent,
       currentEffect,
       currentEffectClass,
+      validWindSamples: validWindCount,
+      meanWindSpeed,
+      windEffect,
+      windEffectClass,
       provenance: [...new Set([...(originOcean?.provenance || []), ...(destOcean?.provenance || [])])],
       samples: displaySamples,
       greatCircleSamples: rawGreatCircle
@@ -163,7 +210,17 @@ export default function MaritimeModule() {
     setIsAnalyzing(false);
   };
 
+  // A ref guard, not just an empty dependency array — React 18 StrictMode
+  // deliberately double-invokes a mount effect in dev to surface exactly
+  // this kind of bug, and each real /api/ocean-state/stream fetch is
+  // precious (5-90s of real Copernicus calls); firing it twice on every
+  // load would double that cost and show duplicate checklist entries for
+  // no reason. Production only ever mounts once, so this guard is a no-op
+  // there — it exists purely to make dev and prod behave the same way.
+  const hasAutoAnalyzedRef = useRef(false);
   useEffect(() => {
+    if (hasAutoAnalyzedRef.current) return;
+    hasAutoAnalyzedRef.current = true;
     evaluateRoute();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -314,9 +371,21 @@ export default function MaritimeModule() {
                 </div>
 
                 <div className="m-card">
-                  <span className="m-lbl">SEA CONDITIONS</span>
+                  <span className="m-lbl">WIND</span>
+                  <strong className={`m-val status-${routeAnalysis.windEffectClass}`}>
+                    {routeAnalysis.windEffect}
+                  </strong>
+                  <span className="m-sub">
+                    {routeAnalysis.validWindSamples === 0
+                      ? `No real wind data (${routeAnalysis.validWindSamples}/2 points)`
+                      : `${routeAnalysis.meanWindSpeed} m/s avg (origin/destination)`}
+                  </span>
+                </div>
+
+                <div className="m-card">
+                  <span className="m-lbl">WAVES / WEATHER</span>
                   <strong className="m-val status-insufficient">DATA NOT AVAILABLE</strong>
-                  <span className="m-sub">Wave/weather data not yet integrated</span>
+                  <span className="m-sub">No real wave/weather source integrated yet</span>
                 </div>
               </div>
 
@@ -325,11 +394,18 @@ export default function MaritimeModule() {
                 <span className="basis-hdr">ROUTE BASIS:</span>
                 <div className="basis-tags">
                   <span className="b-tag active">✓ CURRENT</span>
-                  <span className="b-tag disabled">— WIND</span>
+                  <span className={`b-tag ${routeAnalysis.validWindSamples > 0 ? 'active' : 'disabled'}`}>
+                    {routeAnalysis.validWindSamples > 0 ? '✓ WIND' : '— WIND'}
+                  </span>
                   <span className="b-tag disabled">— WAVES</span>
                   <span className="b-tag disabled">— WEATHER</span>
                 </div>
               </div>
+            </div>
+          ) : isAnalyzing ? (
+            <div className="console-section">
+              <div className="section-title">FETCHING LIVE DATA</div>
+              <LiveStepsList steps={analysisSteps} />
             </div>
           ) : (
             <div className="console-section empty-hint">
@@ -349,7 +425,7 @@ export default function MaritimeModule() {
               </strong>
             </div>
             <p className="disclaimer-text">
-              Ocean-aware routing is decision support and not autonomous navigation. Current effect is based on real readings at origin and destination only, not the full route.
+              Ocean-aware routing is decision support and not autonomous navigation. Current and wind effects are based on real readings at origin and destination only, not the full route. Wave and weather data are not yet integrated.
             </p>
           </div>
         </div>

@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import OceanLocationMap from './OceanLocationMap';
-import { fetchOceanState } from '@/lib/fetchOceanState';
+import LiveStepsList from './LiveStepsList';
+import { useOceanState } from '@/lib/useOceanState';
 
 export default function FisheriesModule() {
   const [selectedLocation, setSelectedLocation] = useState({
@@ -11,9 +12,6 @@ export default function FisheriesModule() {
     lon: 64.96,
     regionName: 'Arabian Sea Shelf'
   });
-  const [isLoading, setIsLoading] = useState(true);
-  const [ocean, setOcean] = useState(null);
-  const [loadError, setLoadError] = useState(null);
 
   const presets = [
     { key: 'zone-a', name: 'Arabian Sea Shelf', lat: 15.0, lon: 64.96, regionName: 'Arabian Sea Shelf' },
@@ -21,38 +19,14 @@ export default function FisheriesModule() {
     { key: 'zone-c', name: 'Equatorial Pass', lat: -0.5, lon: 78.0, regionName: 'Equatorial Pass' }
   ];
 
-  // Real live data — a single normalized /api/ocean-state call, replacing
+  // Real live data — a single normalized /api/ocean-state stream, replacing
   // the 5 dead local-file providers that used to hit non-existent
-  // copernicus_*/hycom_*/smap_* paths on every location change. This is a
-  // real 5-90s network call (same class of live fetch as the Solution
-  // page's live mode), not instant — isCurrent guards against a stale
-  // response landing after the user has already moved to a new location.
-  useEffect(() => {
-    let isCurrent = true;
-
-    async function loadRealData() {
-      setIsLoading(true);
-      setLoadError(null);
-      try {
-        const data = await fetchOceanState(selectedLocation.lat, selectedLocation.lon);
-        if (isCurrent) {
-          setOcean(data);
-          setIsLoading(false);
-        }
-      } catch (e) {
-        if (isCurrent) {
-          setLoadError(e.message || 'Could not reach the ocean-state service.');
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadRealData();
-
-    return () => {
-      isCurrent = false;
-    };
-  }, [selectedLocation]);
+  // copernicus_*/hycom_*/smap_* paths on every location change. Real 5-90s
+  // network calls (same class of live fetch as the Solution page's live
+  // mode); `steps` carries each real fetch's progress as it lands, same as
+  // that page's checklist, so the loading state visibly shows real work
+  // happening instead of a single static "loading" label.
+  const { steps, ocean, loadError, isLoading } = useOceanState(selectedLocation.lat, selectedLocation.lon);
 
   // Environmental Suitability Calculations
   let tempScore = 0;
@@ -215,6 +189,8 @@ export default function FisheriesModule() {
                 <span className="score-denom">/ 100</span>
               </div>
             </div>
+
+            {isLoading && <LiveStepsList steps={steps} />}
 
             {/* SCORE BREAKDOWN */}
             <div className="breakdown-list">

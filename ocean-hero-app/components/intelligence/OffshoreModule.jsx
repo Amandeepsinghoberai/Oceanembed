@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import OceanLocationMap from './OceanLocationMap';
-import { fetchOceanState } from '@/lib/fetchOceanState';
+import LiveStepsList from './LiveStepsList';
+import { useOceanState } from '@/lib/useOceanState';
 
 export default function OffshoreModule() {
   const [selectedLocation, setSelectedLocation] = useState({
@@ -12,46 +13,18 @@ export default function OffshoreModule() {
     regionName: 'Arabian Sea Sector'
   });
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [ocean, setOcean] = useState(null);
-  const [loadError, setLoadError] = useState(null);
-
   const presets = [
     { key: 'site-1', name: 'Arabian Sea Sector', lat: 18.5, lon: 71.2, regionName: 'Arabian Sea Sector' },
     { key: 'site-2', name: 'Krishna-Godavari Deep Water', lat: 15.8, lon: 81.9, regionName: 'Krishna-Godavari Deep Water' },
     { key: 'site-3', name: 'Lakshadweep Ridge Channel', lat: 10.2, lon: 73.5, regionName: 'Lakshadweep Ridge Channel' }
   ];
 
-  // Real live data — a single normalized /api/ocean-state call, replacing
-  // the 5 dead local-file providers. Real 5-90s network call; isCurrent
-  // guards against a stale response landing after the site selection has
-  // already moved on.
-  useEffect(() => {
-    let isCurrent = true;
-
-    async function loadData() {
-      setIsLoading(true);
-      setLoadError(null);
-      try {
-        const data = await fetchOceanState(selectedLocation.lat, selectedLocation.lon);
-        if (isCurrent) {
-          setOcean(data);
-          setIsLoading(false);
-        }
-      } catch (e) {
-        if (isCurrent) {
-          setLoadError(e.message || 'Could not reach the ocean-state service.');
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadData();
-
-    return () => {
-      isCurrent = false;
-    };
-  }, [selectedLocation]);
+  // Real live data — a single normalized /api/ocean-state stream, replacing
+  // the 5 dead local-file providers. Real 5-90s network calls; `steps`
+  // carries each real fetch's progress as it lands, same checklist the
+  // Solution page's live mode shows, so loading visibly shows real work
+  // happening instead of a single static "loading" label.
+  const { steps, ocean, loadError, isLoading } = useOceanState(selectedLocation.lat, selectedLocation.lon);
 
   let sstDisplay = 'DATA NOT AVAILABLE';
   let salDisplay = 'DATA NOT AVAILABLE';
@@ -137,7 +110,7 @@ export default function OffshoreModule() {
     <article className="intel-card offshore-workstation">
       <div className="workstation-header">
         <h2>OFFSHORE INTELLIGENCE</h2>
-        <p className="headline">Ocean conditions for offshore planning and monitoring.</p>
+        <p className="headline">Ocean conditions for offshore planning, monitoring, and site assessment — including offshore mining and mineral-extraction operations.</p>
       </div>
 
       <div className="workstation-grid">
@@ -231,6 +204,7 @@ export default function OffshoreModule() {
                 {isLoading ? 'LOADING LIVE DATA...' : loadError ? 'LIVE DATA UNAVAILABLE' : conditionText}
               </span>
             </div>
+            {isLoading && <LiveStepsList steps={steps} />}
           </div>
 
           {/* TEMPERATURE ANOMALY */}
@@ -291,7 +265,7 @@ export default function OffshoreModule() {
 
           {/* SCIENTIFIC DISCLAIMER */}
           <p className="scientific-disclaimer">
-            Ocean-condition indicators support offshore planning and monitoring; they are not engineering safety certification.
+            Ocean-condition indicators support offshore planning, monitoring, and mining/mineral-extraction site assessment based on real water-column conditions; they are not engineering safety certification and do not include seabed mineral, geotechnical, or bathymetric data.
           </p>
         </div>
       </div>
