@@ -6,8 +6,18 @@ __pycache__/
 # Scratch dir for real-time fetches during a live prediction (ephemeral)
 live_cache/
 
-# Model weights + grid files: too large for this repo (processed_sst_full.nc
-# alone is ~272MB, over GitHub's 100MB per-file limit) and not source code -
-# see models/.gitkeep and README.md for where to get them.
+# Only the 3 large NetCDF grids are excluded here (processed_sst_full.nc
+# alone is ~272MB, over GitHub's 100MB per-file limit) - they're served from
+# Azure Blob Storage instead (see startup.sh). The 8 small model weight/
+# stats/correction files are real source-like artifacts needed at import
+# time and are tracked normally.
 models/*
 !models/.gitkeep
+!models/best_mlp_cluster.pt
+!models/best_mlp_arabian_eddy.pt
+!models/cluster_map.npy
+!models/cluster_map_arabian_curl.npy
+!models/normalization_stats_cluster.npz
+!models/normalization_stats_arabian_eddy.npz
+!models/depth_bias_correction_cluster.csv
+!models/depth_bias_correction_arabian_eddy.csv
