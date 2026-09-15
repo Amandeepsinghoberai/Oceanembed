@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 
-// The FastAPI live-prediction backend (backend/main.py) — same base URL
-// pattern used everywhere else this project talks to it.
-const LIVE_API_BASE = 'http://localhost:8000';
+// The FastAPI live-prediction backend (backend/main.py). Defaults to local
+// dev; set NEXT_PUBLIC_LIVE_API_BASE (e.g. in Vercel's project env vars) to
+// point at the real deployed backend in production — same base URL pattern
+// used everywhere else this project talks to it.
+const LIVE_API_BASE = process.env.NEXT_PUBLIC_LIVE_API_BASE || 'http://localhost:8000';
 
 // Imperative version — used by MaritimeModule, which fetches 2 points
 // (origin + destination) inside one triggered action rather than reacting

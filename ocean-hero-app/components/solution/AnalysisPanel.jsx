@@ -5,7 +5,9 @@ import { ModelResultsProvider } from '@/data/ModelResultsProvider';
 
 // The FastAPI live-prediction backend (backend/main.py). Not part of the
 // Next.js app — must be running separately (uvicorn main:app --port 8000).
-const LIVE_API_BASE = 'http://localhost:8000';
+// Defaults to local dev; set NEXT_PUBLIC_LIVE_API_BASE (e.g. in Vercel's
+// project env vars) to point at the real deployed backend in production.
+const LIVE_API_BASE = process.env.NEXT_PUBLIC_LIVE_API_BASE || 'http://localhost:8000';
 
 // Real depths from the trained model's output (identical across all 5
 // demo points) — used as a fallback before a result has loaded.
