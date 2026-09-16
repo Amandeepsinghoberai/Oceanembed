@@ -96,18 +96,27 @@ def _get_cluster_id(lat, lon, cluster_map, grid_lats, grid_lons):
 
 
 def _fetch_latest(dataset_id, variable, lat, lon, filename, max_days_back=14, hourly=False,
-                   min_depth=None, max_depth=None):
+                   min_depth=None, max_depth=None, start_days_back=2):
     """Tries progressively older dates until the live dataset actually has data.
 
     min_depth/max_depth are optional and only needed for a genuinely 3D
     product (e.g. the current U/V dataset, which carries multiple depth
     levels) — omitted entirely for every existing 2D/surface-only caller,
     so their behavior is unchanged.
+
+    start_days_back lets a caller skip straight past days a specific
+    dataset is known (from real, repeated observation) to never have yet -
+    e.g. the multi-satellite SSS product below, whose own server-side
+    warning during testing confirmed a ~6-day publication lag. Every other
+    call site omits this and keeps the original day-2 starting point, so
+    their behavior is byte-for-byte unchanged; this still falls back to
+    trying every later day up to max_days_back if the assumed lag is ever
+    wrong, so it can never turn "no fresh data" into a false negative.
     """
     today = datetime.now(timezone.utc).date()
     out_path = f"{LIVE_DIR}/{filename}"
 
-    for days_back in range(2, max_days_back + 1):
+    for days_back in range(start_days_back, max_days_back + 1):
         target_date = today - timedelta(days=days_back)
         start = f"{target_date}T12:00:00" if hourly else str(target_date)
         end = start
@@ -483,7 +492,7 @@ def get_ocean_state_streaming(lat, lon):
     if region == "bay" and response["surface"]["sss_psu"] is None:
         yield {"step": "Fetching live salinity data...", "done": False}
         try:
-            sss_path, _ = _fetch_latest("cmems_obs-mob_glo_phy-sss_nrt_multi_P1D", "sos", lat, lon, "ocean_state_sss_bay.nc")
+            sss_path, _ = _fetch_latest("cmems_obs-mob_glo_phy-sss_nrt_multi_P1D", "sos", lat, lon, "ocean_state_sss_bay.nc", start_days_back=6)
             response["surface"]["sss_psu"] = round(_surface_value(sss_path, "sos", lat, lon), 2)
             provenance.add("SMAP")
         except Exception:
