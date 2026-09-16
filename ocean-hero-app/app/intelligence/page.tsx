@@ -9,7 +9,6 @@ import OceanHealthModule from "@/components/intelligence/OceanHealthModule";
 import OffshoreModule from "@/components/intelligence/OffshoreModule";
 import MaritimeModule from "@/components/intelligence/MaritimeModule";
 import IntelligenceEngineFlow from "@/components/intelligence/IntelligenceEngineFlow";
-import InteractiveIntelligenceExplorer from "@/components/intelligence/InteractiveIntelligenceExplorer";
 
 export default function OceanIntelligencePage() {
   const [activeModule, setActiveModule] = useState<'fisheries' | 'ocean-health' | 'offshore' | 'maritime'>('fisheries');
@@ -82,11 +81,6 @@ export default function OceanIntelligencePage() {
 
         {/* SHARED ENGINE FLOW */}
         <IntelligenceEngineFlow />
-
-        {/* INTERACTIVE EXPERIENCE */}
-        <div id="interactive-map">
-          <InteractiveIntelligenceExplorer />
-        </div>
 
         {/* CLOSING BANNER */}
         <section className="intel-close intel-width">
