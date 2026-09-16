@@ -21,7 +21,7 @@ const images = {
     "https://images.unsplash.com/photo-1530053969600-caed2596d242?auto=format&fit=crop&w=1600&q=85",
 
   underwater:
-    "https://images.unsplash.com/photo-1544550285-f813152fb2fd?auto=format&fit=crop&w=1600&q=85",
+    "https://images.unsplash.com/photo-1551244072-5d12893278ab?auto=format&fit=crop&w=1600&q=85",
 
   marine:
     "https://images.unsplash.com/photo-1518467166778-b88f373ffec7?auto=format&fit=crop&w=1600&q=85",

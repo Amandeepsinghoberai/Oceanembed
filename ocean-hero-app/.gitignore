@@ -16,3 +16,6 @@ next-env.d.ts
 *.nc
 *.bin
 *.log
+
+.vercel
+.env*
