@@ -236,6 +236,7 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
   const [argoPoints, setArgoPoints] = useState(null);
   const [argoPointsVisible, setArgoPointsVisible] = useState(false);
   const [hoverArgoPoint, setHoverArgoPoint] = useState(null);
+  const [zoom, setZoom] = useState(1);
 
   const svgRef = useRef(null);
   const projectionRef = useRef(null);
@@ -453,15 +454,17 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
     if (!svgRef.current || !projectionRef.current) return null;
 
     const rect = svgRef.current.getBoundingClientRect();
-    const viewBoxWidth = 800;
-    const viewBoxHeight = 500;
+    const viewBoxWidth = 800 / zoom;
+    const viewBoxHeight = 500 / zoom;
+    const viewBoxX = (800 - viewBoxWidth) / 2;
+    const viewBoxY = (500 - viewBoxHeight) / 2;
     const scale = Math.min(rect.width / viewBoxWidth, rect.height / viewBoxHeight);
     const renderedWidth = viewBoxWidth * scale;
     const renderedHeight = viewBoxHeight * scale;
     const offsetX = (rect.width - renderedWidth) / 2;
     const offsetY = (rect.height - renderedHeight) / 2;
-    const x = (e.clientX - rect.left - offsetX) / scale;
-    const y = (e.clientY - rect.top - offsetY) / scale;
+    const x = (e.clientX - rect.left - offsetX) / scale + viewBoxX;
+    const y = (e.clientY - rect.top - offsetY) / scale + viewBoxY;
 
     if (x < 0 || x > viewBoxWidth || y < 0 || y > viewBoxHeight) return null;
 
@@ -605,9 +608,9 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
   return (
     <div className="ocean-map-container">
       <div className="map-controls">
-        <button>+</button>
-        <button>−</button>
-        <button className="reset">RESET</button>
+        <button type="button" onClick={() => setZoom(value => Math.min(4, value * 1.5))} aria-label="Zoom in">+</button>
+        <button type="button" onClick={() => setZoom(value => Math.max(1, value / 1.5))} aria-label="Zoom out">−</button>
+        <button type="button" className="reset" onClick={() => setZoom(1)}>RESET</button>
         {heatmapGrid && (
           <button
             className={`heatmap-toggle ${heatmapVisible ? 'active' : ''}`}
@@ -631,7 +634,7 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
       <div className="map-canvas">
         <svg
            ref={svgRef}
-           viewBox="0 0 800 500"
+           viewBox={`${(800 - 800 / zoom) / 2} ${(500 - 500 / zoom) / 2} ${800 / zoom} ${500 / zoom}`}
            className={`d3-svg ${hoverMarker ? 'interactive-ocean' : ''}`}
            preserveAspectRatio="xMidYMid meet"
            onMouseMove={handlePointer}
