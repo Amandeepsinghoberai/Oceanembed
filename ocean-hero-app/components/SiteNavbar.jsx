@@ -33,7 +33,9 @@ export default function SiteNavbar() {
             alt="OceanEmbed Logo" 
             width={160} 
             height={48} 
-            style={{ height: "48px", width: "auto", mixBlendMode: "screen" }} 
+            className="site-logo"
+            sizes="160px"
+            unoptimized
             priority
           />
         </Link>
@@ -89,6 +91,12 @@ export default function SiteNavbar() {
           text-decoration: none;
           /* Faster mobile tap */
           touch-action: manipulation;
+        }
+        .site-logo {
+          display: block;
+          width: auto;
+          height: 48px;
+          mix-blend-mode: screen;
         }
         .ocean-nav nav {
           display: flex;
@@ -154,6 +162,7 @@ export default function SiteNavbar() {
         }
         @media (max-width: 700px) {
           .ocean-nav.site-nav { height: 64px; }
+          .site-logo { height: 40px; }
           .ocean-nav nav a:nth-child(n+3) { display: none; }
         }
       `}</style>

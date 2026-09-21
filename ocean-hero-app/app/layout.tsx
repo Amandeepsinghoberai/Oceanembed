@@ -24,6 +24,10 @@ export const metadata: Metadata = {
   title: "OceanEmbed",
   description:
     "OceanEmbed reconstructs the full ocean temperature profile from surface signals alone.",
+  icons: {
+    icon: "/oceanembed-logo-v2.png",
+    apple: "/oceanembed-logo-v2.png",
+  },
 };
 
 export default function RootLayout({
