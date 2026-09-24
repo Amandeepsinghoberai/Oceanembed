@@ -38,7 +38,7 @@ export default function OceanHealthModule() {
   // carries each real fetch's progress as it lands, same checklist the
   // Solution page's live mode shows, so loading visibly shows real work
   // happening instead of a single static "loading" label.
-  const { steps, ocean, loadError, isLoading } = useOceanState(selectedLocation.lat, selectedLocation.lon);
+  const { steps, ocean, loadError, rateLimited, isLoading } = useOceanState(selectedLocation.lat, selectedLocation.lon);
 
   // Compute Anomaly & Condition Status
   let tempDisplay = 'DATA UNAVAILABLE';
@@ -225,9 +225,10 @@ export default function OceanHealthModule() {
             <div className="status-row">
               <span className="box-label">OCEAN CONDITION</span>
               <span className={`status-badge ${loadError ? 'insufficient' : statusClass}`}>
-                {isLoading ? 'LOADING LIVE DATA...' : loadError ? 'LIVE DATA UNAVAILABLE' : conditionStatus}
+                {isLoading ? 'LOADING LIVE DATA...' : loadError ? (rateLimited ? 'PLEASE WAIT — TOO MANY REQUESTS' : 'LIVE DATA UNAVAILABLE') : conditionStatus}
               </span>
             </div>
+            {rateLimited && <p className="rate-limit-note" style={{ margin: '8px 0 0', fontSize: '0.8rem', lineHeight: 1.5, opacity: 0.9 }}>{loadError}</p>}
             {!isLoading && !loadError && (
               <p className="status-explainer">{STATUS_EXPLANATIONS[statusClass]}</p>
             )}

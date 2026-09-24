@@ -52,6 +52,8 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
   const [liveSteps, setLiveSteps] = useState([]);
   const [liveResult, setLiveResult] = useState(null);
   const [liveError, setLiveError] = useState(null);
+  // A 429 from the backend's rate limit isn't a failure: it gets its own header.
+  const [liveRateLimited, setLiveRateLimited] = useState(false);
   const [liveLoading, setLiveLoading] = useState(false);
   const liveSourceRef = useRef(null);
   const isLive = isArbitrary || viewMode === 'live';
@@ -85,6 +87,7 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
     setLiveSteps([]);
     setLiveResult(null);
     setLiveError(null);
+    setLiveRateLimited(false);
     setLiveLoading(false);
 
     if (selectedId === null && arbitraryPoint) {
@@ -106,13 +109,20 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
     setLiveSteps([]);
     setLiveResult(null);
     setLiveError(null);
+    setLiveRateLimited(false);
     setLiveLoading(true);
 
-    const source = new EventSource(`${LIVE_API_BASE}/api/live-predict/stream?lat=${lat}&lon=${lon}`);
+    // Read the same SSE stream with fetch instead of EventSource: EventSource
+    // can't see the HTTP status, so a backend rate limit (429) was
+    // indistinguishable from the backend being down. The handle keeps the
+    // .close() shape the rest of this component already uses.
+    const controller = new AbortController();
+    const source = { close: () => controller.abort() };
     liveSourceRef.current = source;
 
-    source.onmessage = (event) => {
-      const update = JSON.parse(event.data);
+    let finished = false;
+    const handleUpdate = (update) => {
+      if (update.step === 'error' || update.done) finished = true;
       if (update.step === 'error') {
         setLiveError(update.error || 'Live prediction failed.');
         setLiveLoading(false);
@@ -126,11 +136,41 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
       }
     };
 
-    source.onerror = () => {
-      setLiveError('Could not reach the live prediction service. Is the backend running on localhost:8000?');
-      setLiveLoading(false);
-      source.close();
-    };
+    (async () => {
+      try {
+        const res = await fetch(`${LIVE_API_BASE}/api/live-predict/stream?lat=${lat}&lon=${lon}`, { signal: controller.signal });
+        if (res.status === 429) {
+          const wait = parseInt(res.headers.get('Retry-After'), 10);
+          setLiveRateLimited(true);
+          setLiveError(`You're making requests too quickly. Please wait${Number.isFinite(wait) ? ` ${wait} second${wait === 1 ? '' : 's'}` : ' a moment'} before trying again.`);
+          setLiveLoading(false);
+          return;
+        }
+        if (!res.ok || !res.body) {
+          setLiveError(`The live prediction service returned an error (HTTP ${res.status}).`);
+          setLiveLoading(false);
+          return;
+        }
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const messages = buffer.split('\n\n');
+          buffer = messages.pop();
+          for (const msg of messages) {
+            if (msg.startsWith('data: ')) handleUpdate(JSON.parse(msg.slice(6))); // ": keep-alive" comments are skipped
+          }
+        }
+        if (!finished) throw new Error('stream ended early');
+      } catch (err) {
+        if (err.name === 'AbortError') return; // closed on purpose (new point, or finished)
+        setLiveError('Could not reach the live prediction service. Please check your connection and try again in a moment.');
+        setLiveLoading(false);
+      }
+    })();
   }
 
   // Clicking LIVE only triggers a fetch the first time (or to retry after an
@@ -328,7 +368,7 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
               })}
             </ul>
           ) : liveError ? (
-            <div className="live-error">LIVE PREDICTION FAILED — {liveError}</div>
+            <div className="live-error">{liveRateLimited ? 'PLEASE WAIT' : 'LIVE PREDICTION FAILED'} — {liveError}</div>
           ) : (
             <>
               <div className="live-info-note">Not yet validated against Argo — real Argo data for this date won&apos;t be available for several weeks.</div>

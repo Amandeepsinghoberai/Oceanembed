@@ -24,7 +24,7 @@ export default function OffshoreModule() {
   // carries each real fetch's progress as it lands, same checklist the
   // Solution page's live mode shows, so loading visibly shows real work
   // happening instead of a single static "loading" label.
-  const { steps, ocean, loadError, isLoading } = useOceanState(selectedLocation.lat, selectedLocation.lon);
+  const { steps, ocean, loadError, rateLimited, isLoading } = useOceanState(selectedLocation.lat, selectedLocation.lon);
 
   let sstDisplay = 'DATA NOT AVAILABLE';
   let salDisplay = 'DATA NOT AVAILABLE';
@@ -201,9 +201,10 @@ export default function OffshoreModule() {
             <div className="status-row">
               <span className="box-label">OCEAN CONDITION STATUS</span>
               <span className={`status-badge ${loadError ? 'insufficient' : conditionClass}`}>
-                {isLoading ? 'LOADING LIVE DATA...' : loadError ? 'LIVE DATA UNAVAILABLE' : conditionText}
+                {isLoading ? 'LOADING LIVE DATA...' : loadError ? (rateLimited ? 'PLEASE WAIT — TOO MANY REQUESTS' : 'LIVE DATA UNAVAILABLE') : conditionText}
               </span>
             </div>
+            {rateLimited && <p className="rate-limit-note" style={{ margin: '8px 0 0', fontSize: '0.8rem', lineHeight: 1.5, opacity: 0.9 }}>{loadError}</p>}
             {isLoading && <LiveStepsList steps={steps} />}
           </div>
 

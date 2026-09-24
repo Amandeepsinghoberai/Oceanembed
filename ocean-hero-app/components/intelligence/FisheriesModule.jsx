@@ -26,7 +26,7 @@ export default function FisheriesModule() {
   // mode); `steps` carries each real fetch's progress as it lands, same as
   // that page's checklist, so the loading state visibly shows real work
   // happening instead of a single static "loading" label.
-  const { steps, ocean, loadError, isLoading } = useOceanState(selectedLocation.lat, selectedLocation.lon);
+  const { steps, ocean, loadError, rateLimited, isLoading } = useOceanState(selectedLocation.lat, selectedLocation.lon);
 
   // Environmental Suitability Calculations
   let tempScore = 0;
@@ -181,8 +181,9 @@ export default function FisheriesModule() {
               <div>
                 <span className="box-label">ENVIRONMENTAL SUITABILITY</span>
                 <span className={`status-badge ${loadError ? 'insufficient' : statusClass}`}>
-                  {isLoading ? 'LOADING LIVE DATA...' : loadError ? 'LIVE DATA UNAVAILABLE' : statusText}
+                  {isLoading ? 'LOADING LIVE DATA...' : loadError ? (rateLimited ? 'PLEASE WAIT — TOO MANY REQUESTS' : 'LIVE DATA UNAVAILABLE') : statusText}
                 </span>
+                {rateLimited && <p className="rate-limit-note" style={{ margin: '8px 0 0', fontSize: '0.8rem', lineHeight: 1.5, opacity: 0.9 }}>{loadError}</p>}
               </div>
               <div className="score-display">
                 <strong className="score-num">{isLoading ? '...' : totalScore}</strong>

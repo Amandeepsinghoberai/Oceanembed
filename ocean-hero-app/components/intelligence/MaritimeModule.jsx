@@ -28,6 +28,7 @@ export default function MaritimeModule() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [routeAnalysis, setRouteAnalysis] = useState(null);
   const [loadError, setLoadError] = useState(null);
+  const [loadRateLimited, setLoadRateLimited] = useState(false);
   const [analysisSteps, setAnalysisSteps] = useState([]);
 
   // Real current, fetched only at the route's origin and destination — not
@@ -46,6 +47,7 @@ export default function MaritimeModule() {
 
     setIsAnalyzing(true);
     setLoadError(null);
+    setLoadRateLimited(false);
     setAnalysisSteps([]);
 
     // Direct Great-Circle reference line
@@ -207,6 +209,7 @@ export default function MaritimeModule() {
       greatCircleSamples: rawGreatCircle
     });
     setLoadError(fetchError);
+    setLoadRateLimited(!!(originRes.rateLimited || destRes.rateLimited));
     setIsAnalyzing(false);
   };
 
@@ -416,7 +419,7 @@ export default function MaritimeModule() {
           {/* DATA SOURCES & SCIENTIFIC DISCLAIMER */}
           <div className="console-section footer-section">
             {loadError && (
-              <p className="disclaimer-text error-text">Live current lookup failed: {loadError}</p>
+              <p className="disclaimer-text error-text">{loadRateLimited ? 'PLEASE WAIT —' : 'Live current lookup failed:'} {loadError}</p>
             )}
             <div className="sources-line">
               <span className="src-lbl">DATA SOURCES:</span>
