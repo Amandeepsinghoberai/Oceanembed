@@ -152,7 +152,8 @@ export default function SolutionWorkspace() {
         .solution-ws-root {
           width: 100%;
           min-height: 100svh;
-          padding-top: 80px;
+          /* just clears the 70px fixed nav (the page is already offset by the stat bar) */
+          padding-top: 76px;
           padding-bottom: 2rem;
           display: flex;
           flex-direction: column;

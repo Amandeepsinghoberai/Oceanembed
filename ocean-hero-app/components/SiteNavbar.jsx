@@ -13,7 +13,7 @@ export default function SiteNavbar() {
     let lastScroll = window.scrollY;
     const handleScroll = () => {
       const currentScroll = window.scrollY;
-      if (currentScroll > lastScroll && currentScroll > 50) {
+      if (currentScroll > lastScroll && currentScroll > 0) {
         setHidden(true);
       } else if (currentScroll < lastScroll) {
         setHidden(false);
@@ -68,11 +68,14 @@ export default function SiteNavbar() {
           z-index: 99999 !important;
           pointer-events: none !important;
           background: transparent;
-          transition: transform 0.3s ease-in-out;
+          transition: transform 0.16s ease-out, opacity 0.16s ease-out;
         }
 
+        /* Slides up and out on scroll. It also has to clear the stat bar it
+           sits under (--tsb-height), otherwise it would linger over it. */
         .ocean-nav.site-nav.nav-hidden {
-          transform: translateY(-100%);
+          transform: translateY(calc(-100% - var(--tsb-height, 0px)));
+          opacity: 0;
         }
 
         .site-nav .brand,

@@ -577,7 +577,7 @@ const MARKUP = `
         </header>
 
         <div class="story-copy">
-          <article class="story-panel story-hero on" data-from="0" data-to="120">
+          <article class="story-panel story-hero on" data-from="0" data-to="100">
             <span class="eyebrow">OCEAN DATA PLATFORM · SIH 2026</span>
             <h1 id="heroH1">
               <span id="titleOcean" style="display:inline-block; transform-origin: left top;">OCEAN</span><br/>
