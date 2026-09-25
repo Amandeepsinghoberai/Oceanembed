@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, Bricolage_Grotesque, Public_Sans } from "next/font/google";
 import "./globals.css";
+import TopStatBar from "@/components/TopStatBar";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -37,7 +38,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${spaceGrotesk.variable} ${bricolage.variable} ${publicSans.variable}`}>
-      <body>{children}</body>
+      <body>
+        <TopStatBar />
+        {children}
+      </body>
     </html>
   );
 }

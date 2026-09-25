@@ -3,6 +3,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import * as d3Geo from 'd3-geo';
 import { ModelResultsProvider } from '@/data/ModelResultsProvider';
+import { useMapCalendar, CalendarPopover, CalendarComparison, describeCoverage, isLimited } from './MapCalendar';
+import { useConfidenceLayer, ConfidenceLegend } from './ConfidenceLayer';
+import { useFloatTrack, FloatTrackSvgLayer, FloatTrackPopover, FloatTrackPanel } from './FloatTrack';
 
 // Decorative depth-tinted gradients — purely atmospheric styling driven by
 // the selected depth/mode, not a rendering of any real per-pixel dataset.
@@ -238,8 +241,47 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
   const [hoverArgoPoint, setHoverArgoPoint] = useState(null);
   const [zoom, setZoom] = useState(1);
 
+  // Real Argo floats for a chosen past date (calendar toggle). Separate state,
+  // drawn as its own layer; never touches the markers, heatmap or click-anywhere.
+  const cal = useMapCalendar();
+
+  // Homepage entry point (item 2): a link to /solution?openCalendar=1 opens
+  // the calendar automatically. Reads window.location directly (not
+  // next/navigation's useSearchParams) so this stays a plain effect and
+  // doesn't force this statically-prerendered page into a Suspense
+  // boundary. Does not touch the calendar's own toggle/open logic.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (new URLSearchParams(window.location.search).get('openCalendar') === '1') {
+      cal.toggle();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const svgRef = useRef(null);
   const projectionRef = useRef(null);
+
+  // Model-confidence layer (separate, additive): real 7-model ensemble
+  // disagreement, Bay of Bengal only. Its own state, data and rendering live
+  // in ConfidenceLayer.jsx. Turning it on swaps the SST overlay off (and back
+  // on when it's turned off, if it was on) so two full-basin colour scales are
+  // never stacked; SST's own data/rendering are untouched.
+  const conf = useConfidenceLayer(projectionRef, !!mapPath);
+
+  // Real Argo float drift track (separate, additive): its own state, data and
+  // rendering live in FloatTrack.jsx. Only real reported positions are drawn.
+  const ft = useFloatTrack();
+  const sstBeforeConfRef = useRef(false);
+  const toggleConfidence = () => {
+    if (!conf.visible) {
+      sstBeforeConfRef.current = heatmapVisible;
+      setHeatmapVisible(false);
+      conf.setVisible(true);
+    } else {
+      conf.setVisible(false);
+      if (sstBeforeConfRef.current) setHeatmapVisible(true);
+    }
+  };
 
   useEffect(() => {
     fetch('/data/indianOcean.geojson')
@@ -513,6 +555,13 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
       }).filter(Boolean)
     : [];
 
+  const calFloatMarkers = projectionRef.current
+    ? cal.floats.map(f => {
+        const proj = projectionRef.current([f.lon, f.lat]);
+        return proj ? { ...f, x: proj[0], y: proj[1] } : null;
+      }).filter(Boolean)
+    : [];
+
   const findNearestArgoPoint = (x, y) => {
     let nearest = null;
     let nearestDist = ARGO_HIT_RADIUS;
@@ -606,6 +655,7 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
     : null;
 
   return (
+    <div className="ocean-map-outer">
     <div className="ocean-map-container">
       <div className="map-controls">
         <button type="button" onClick={() => setZoom(value => Math.min(4, value * 1.5))} aria-label="Zoom in">+</button>
@@ -629,7 +679,45 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
             ARGO
           </button>
         )}
+        {conf.ready && (
+          <button
+            className={`heatmap-toggle ${conf.visible ? 'active' : ''}`}
+            onClick={toggleConfidence}
+            title={conf.visible ? 'Hide model-confidence overlay' : 'Show model agreement: how much the 7 ensemble models in each region disagree with each other (Bay of Bengal and Arabian Sea). Agreement, not accuracy.'}
+          >
+            CONF
+          </button>
+        )}
+        <button
+          type="button"
+          className={`heatmap-toggle ft-toggle ${ft.open ? 'active' : ''}`}
+          onClick={() => { if (!ft.open && cal.open) cal.close(); ft.toggle(); }}
+          aria-pressed={ft.open}
+          aria-label="Track one real Argo float"
+          title={ft.open ? 'Close the float tracker' : 'Track one real Argo float: its real drift path across several months, with the model prediction at each real stop'}
+        >
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
+            <path d="M2 12.5c2-1 2.5-4 5-4.5s3 2.5 4.5 1.5S13 4.5 14 3.5" strokeLinecap="round" />
+            <circle cx="2" cy="12.5" r="1.3" fill="currentColor" /><circle cx="14" cy="3.5" r="1.3" fill="currentColor" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          className={`heatmap-toggle cal-toggle ${cal.open ? 'active' : ''}`}
+          onClick={cal.toggle}
+          aria-pressed={cal.open}
+          aria-label="Real Argo floats by date"
+          title={cal.open ? 'Close the Argo calendar' : 'Pick a past date to see the real Argo floats that reported, and compare them with our model'}
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
+            <rect x="2" y="3" width="12" height="11" rx="1.5" />
+            <path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3" />
+          </svg>
+        </button>
       </div>
+
+      {cal.open && <CalendarPopover cal={cal} />}
+      {ft.open && <FloatTrackPopover ft={ft} projection={projectionRef.current} />}
 
       <div className="map-canvas">
         <svg
@@ -682,6 +770,16 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
              />
            )}
 
+           {/* Model-confidence overlay (real 7-model ensemble disagreement) —
+               same non-interactive pattern as the SST image above. */}
+           {conf.visible && conf.imageUrl && (
+             <image
+               href={conf.imageUrl}
+               x={-60} y={-60} width={800 + 120} height={500 + 120}
+               style={{ pointerEvents: 'none' }}
+             />
+           )}
+
            {/* Real Argo float positions, last 30 days — honest visual context
                only, never a prediction target. pointer-events: none so they
                can never intercept a click (hover is hand-detected above);
@@ -698,6 +796,37 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
                style={{ pointerEvents: 'none' }}
              />
            ))}
+
+           {/* Real Argo floats that reported on the date picked in the
+               calendar — real positions, clickable for a model comparison.
+               stopPropagation so a float click never triggers click-anywhere. */}
+           {calFloatMarkers.map(f => {
+             const active = f.file === cal.selectedFile;
+             const limited = isLimited(f);
+             const coverageText = describeCoverage(f.coverage);
+             return (
+               <g
+                 key={f.file}
+                 className="cal-float"
+                 transform={`translate(${f.x}, ${f.y})`}
+                 onClick={(evt) => { evt.stopPropagation(); cal.setSelectedFile(f.file); }}
+               >
+                 <title>{`Argo float ${f.float_id} — ${f.lat.toFixed(2)}°N, ${f.lon.toFixed(2)}°E — ${f.time_utc} UTC (${f.data_mode})${coverageText ? ` — ${coverageText}` : ''}`}</title>
+                 <circle r="9" fill="transparent" />
+                 {active && <circle r="10" fill="#e28c31" opacity="0.2" />}
+                 {/* Hollow dashed ring = a shallow/partial profile with fewer depths to compare. */}
+                 <circle
+                   r={active ? 5 : 3.6}
+                   fill={limited ? (active ? 'rgba(226,140,49,0.35)' : 'rgba(1,7,14,0.35)') : (active ? '#e28c31' : 'rgba(226,140,49,0.55)')}
+                   stroke="#f3c98b" strokeWidth="1.2"
+                   strokeDasharray={limited ? '2 1.4' : undefined}
+                 />
+               </g>
+             );
+           })}
+
+           {/* Real Argo float drift track - real reported fixes only. */}
+           <FloatTrackSvgLayer ft={ft} projection={projectionRef.current} />
 
            {/* The 5 real model-output locations */}
            {markers.map(m => (
@@ -743,17 +872,28 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
              </g>
            )}
 
-           {/* Tooltip for a hovered real Argo float dot — position and real
-               report date only, no temperature (this snapshot doesn't carry
-               one); never implies a prediction or a validation of anything. */}
-           {hoverArgoPoint && (
-             <g transform={`translate(${hoverArgoPoint.x + 12}, ${hoverArgoPoint.y + 12})`} style={{ pointerEvents: 'none' }}>
-               <rect width="128" height="46" fill="rgba(1, 7, 14, 0.9)" stroke="rgba(238, 250, 255, 0.4)" strokeWidth="0.5" rx="2" />
-               <text x="9" y="16" fill="rgba(238, 250, 255, 0.7)" fontSize="6.5" letterSpacing="0.05em">REAL ARGO FLOAT</text>
-               <text x="9" y="29" fill="#fff" fontSize="8" fontWeight="bold">{hoverArgoPoint.date}</text>
-               <text x="9" y="40" fill="rgba(238, 250, 255, 0.55)" fontSize="6.5">{hoverArgoPoint.region}</text>
+           {/* Tooltip for a hovered real Argo float dot: the float's real ID,
+               real report date, real position and region, all straight from
+               the snapshot file behind these dots. The ID is what the Float
+               Tracker takes. No temperature (this snapshot doesn't carry one);
+               never implies a prediction or a validation of anything. Kept
+               inside the map so it never gets cut off at an edge. */}
+           {hoverArgoPoint && (() => {
+             // Two real floats can report from exactly the same spot; list
+             // every one of them so none is impossible to discover.
+             const stacked = argoMarkers.filter((q) => Math.hypot(q.x - hoverArgoPoint.x, q.y - hoverArgoPoint.y) < 1.5).map((q) => q.float_id);
+             const ids = stacked.length > 0 ? stacked : [hoverArgoPoint.float_id];
+             return (
+             <g transform={`translate(${Math.min(hoverArgoPoint.x + 12, 800 - 150)}, ${Math.min(hoverArgoPoint.y + 12, 500 - 72)})`} style={{ pointerEvents: 'none' }}>
+               <rect width="146" height="68" fill="rgba(1, 7, 14, 0.92)" stroke="rgba(238, 250, 255, 0.4)" strokeWidth="0.5" rx="2" />
+               <text x="9" y="14" fill="rgba(238, 250, 255, 0.7)" fontSize="6.5" letterSpacing="0.05em">{ids.length > 1 ? `${ids.length} REAL ARGO FLOATS AT THIS SPOT` : 'REAL ARGO FLOAT'}</text>
+               <text x="9" y="28" fill="#7ce0d0" fontSize={ids.length > 1 ? 8.5 : 10} fontWeight="bold">{ids.length > 1 ? `IDs ${ids.join(' · ')}` : `ID ${ids[0]}`}</text>
+               <text x="9" y="40" fill="#fff" fontSize="7.5" fontWeight="bold">{hoverArgoPoint.date}</text>
+               <text x="9" y="50" fill="rgba(238, 250, 255, 0.75)" fontSize="6.5">{`${Math.abs(hoverArgoPoint.lat).toFixed(2)}°${hoverArgoPoint.lat >= 0 ? 'N' : 'S'} · ${Math.abs(hoverArgoPoint.lon).toFixed(2)}°${hoverArgoPoint.lon >= 0 ? 'E' : 'W'}`}</text>
+               <text x="9" y="60" fill="rgba(238, 250, 255, 0.55)" fontSize="6">{hoverArgoPoint.region} · try {ids.length > 1 ? 'these IDs' : 'this ID'} in the Float Tracker</text>
              </g>
-           )}
+             );
+           })()}
 
            {/* Chooser — 2+ known markers within hit radius of the click.
                Each real marker's own lat/lon is shown exactly; nothing is
@@ -803,6 +943,10 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
             <span className="legend-tick">≥{heatmapGrid.colorMax.toFixed(1)}°C</span>
           </div>
         </div>
+      )}
+
+      {conf.ready && conf.visible && (
+        <ConfidenceLegend layer={conf} raised={!!(heatmapGrid && heatmapVisible)} />
       )}
 
       <style>{`
@@ -976,6 +1120,8 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
           gap: 0.5rem;
         }
 
+        .cal-float { cursor: pointer; }
+
         .legend-tick {
           font-family: var(--font-space-grotesk), sans-serif;
           font-size: 0.62rem;
@@ -990,6 +1136,10 @@ export default function RealOceanMap({ depth, isSurface, selectedId, setSelected
           min-width: 80px;
         }
       `}</style>
+    </div>
+
+    {cal.open && <CalendarComparison cal={cal} />}
+    {ft.open && <FloatTrackPanel ft={ft} />}
     </div>
   );
 }

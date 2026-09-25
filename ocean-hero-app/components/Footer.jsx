@@ -44,6 +44,7 @@ export default function Footer() {
             <h4>RESOURCES</h4>
             <Link href="/data">About Us</Link>
             <Link href="/technology">Documentation</Link>
+            <Link href="/api-docs">API Docs</Link>
           </div>
         </div>
 

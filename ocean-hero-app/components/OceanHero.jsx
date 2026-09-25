@@ -568,10 +568,10 @@ const MARKUP = `
           </button>
           <nav aria-label="Primary navigation">
             <button data-depth="0" data-href="/">EXPLORER</button>
-            <button data-depth="440" data-href="/solution">SOLUTION</button>
-            <button data-depth="520" data-href="/intelligence">INTELLIGENCE</button>
-            <button data-depth="520" data-href="/technology">MODELS</button>
-            <button data-depth="680" data-href="/data">DATA</button>
+            <button data-depth="367" data-href="/solution">SOLUTION</button>
+            <button data-depth="433" data-href="/intelligence">INTELLIGENCE</button>
+            <button data-depth="433" data-href="/technology">MODELS</button>
+            <button data-depth="567" data-href="/data">DATA</button>
           </nav>
           <div class="nav-depth"><span></span><b>000m</b></div>
         </header>
@@ -587,7 +587,7 @@ const MARKUP = `
             <div class="scroll-cue"><i></i> SCROLL TO EXPLORE</div>
           </article>
 
-          <article class="story-panel problem-panel" data-from="120" data-to="200">
+          <article class="story-panel problem-panel" data-from="100" data-to="168">
             <span class="eyebrow">THE PROBLEM</span>
             <h2>THE OCEAN IS MORE<br><em>THAN ITS SURFACE.</em></h2>
             <div class="problem-stack">
@@ -596,7 +596,7 @@ const MARKUP = `
             </div>
           </article>
 
-          <article class="story-panel problem-panel" data-from="200" data-to="280">
+          <article class="story-panel problem-panel" data-from="168" data-to="236">
             <span class="eyebrow">BENEATH THE SURFACE</span>
             <h2>WHAT LIES BELOW<br><em>REMAINS HIDDEN.</em></h2>
             <div class="problem-stack">
@@ -605,7 +605,7 @@ const MARKUP = `
             </div>
           </article>
 
-          <article class="story-panel problem-panel" data-from="280" data-to="360">
+          <article class="story-panel problem-panel" data-from="236" data-to="304">
             <span class="eyebrow">THE DATA GAP</span>
             <h2>SURFACE DATA IS ABUNDANT.<br><em>DEPTH DATA IS NOT.</em></h2>
             <div class="problem-stack">
@@ -614,7 +614,7 @@ const MARKUP = `
             </div>
           </article>
 
-          <article class="story-panel problem-panel" data-from="360" data-to="440">
+          <article class="story-panel problem-panel" data-from="304" data-to="372">
             <span class="eyebrow">THE CHALLENGE</span>
             <h2>CAN SURFACE SIGNALS<br><em>REVEAL THE DEPTHS?</em></h2>
             <div class="problem-stack">
@@ -623,7 +623,7 @@ const MARKUP = `
             </div>
           </article>
 
-          <article class="story-panel solution-panel" data-from="440" data-to="520">
+          <article class="story-panel solution-panel" data-from="372" data-to="440">
             <span class="eyebrow">SOLUTION · DATASET</span>
             <h2>BUILD THE<br><em>OCEAN DATASET.</em></h2>
             <div class="problem-stack">
@@ -632,7 +632,7 @@ const MARKUP = `
             </div>
           </article>
 
-          <article class="story-panel solution-panel" data-from="520" data-to="600">
+          <article class="story-panel solution-panel" data-from="440" data-to="508">
             <span class="eyebrow">SOLUTION · MODEL</span>
             <h2>TRAIN<br><em>THE MODEL.</em></h2>
             <div class="problem-stack">
@@ -642,7 +642,7 @@ const MARKUP = `
             </div>
           </article>
 
-          <article class="story-panel solution-panel" data-from="600" data-to="680">
+          <article class="story-panel solution-panel" data-from="508" data-to="576">
             <span class="eyebrow">SOLUTION · RECONSTRUCTION</span>
             <h2>RECONSTRUCT<br><em>THE HIDDEN OCEAN.</em></h2>
             <div class="problem-stack">
@@ -651,7 +651,7 @@ const MARKUP = `
             </div>
           </article>
 
-          <article class="story-panel impact-panel" data-from="680" data-to="760">
+          <article class="story-panel impact-panel" data-from="576" data-to="644">
             <span class="eyebrow">VALIDATION</span>
             <h2>TEST AGAINST<br><em>REAL OBSERVATIONS.</em></h2>
             <div class="problem-stack">
@@ -661,7 +661,7 @@ const MARKUP = `
             </div>
           </article>
 
-          <article class="story-panel impact-panel" data-from="760" data-to="840">
+          <article class="story-panel impact-panel" data-from="644" data-to="712">
             <span class="eyebrow">VALIDATION · ERROR</span>
             <h2>MEASURE<br><em>THE ERROR.</em></h2>
             <div class="problem-stack">
@@ -671,7 +671,7 @@ const MARKUP = `
             </div>
           </article>
 
-          <article class="story-panel impact-panel" data-from="840" data-to="920">
+          <article class="story-panel impact-panel" data-from="712" data-to="780">
             <span class="eyebrow">ITERATION</span>
             <h2>LEARN. COMPARE.<br><em>IMPROVE.</em></h2>
             <div class="problem-stack">
@@ -681,23 +681,23 @@ const MARKUP = `
             </div>
           </article>
 
-          <article class="story-panel solution-panel" data-from="920" data-to="1000">
-            <span class="eyebrow">APPLICATION</span>
-            <h2>FROM TRAINING TO<br><em>REAL-WORLD PREDICTION.</em></h2>
-            <div class="problem-stack">
-              <p>After evaluation, the model can be applied to locations where direct subsurface observations are limited.</p>
-              <p class="accent"><strong>SURFACE OBSERVATIONS → SUBSURFACE ESTIMATION</strong></p>
-              <p>The goal is not to replace direct measurements, but to extend our ability to understand the ocean between them.</p>
-            </div>
-          </article>
-
-          <article class="story-panel final-panel" data-from="1000" data-to="1100">
+          <article class="story-panel final-panel" data-from="780" data-to="848">
             <span class="eyebrow">THE FINAL VISION</span>
             <h2>FROM SCATTERED<br>OBSERVATIONS TO A<br><em>CLEARER VIEW<br>OF THE OCEAN.</em></h2>
             <div class="problem-stack">
               <p>OceanEmbed aims to make subsurface ocean information easier to explore across locations where direct measurements are limited.</p>
               <p class="accent"><strong>Observe the surface.<br>Learn the hidden patterns.<br>Reconstruct the depths.</strong></p>
             </div>
+          </article>
+
+          <article class="story-panel impact-panel calendar-promo-panel" data-from="848" data-to="1001">
+            <span class="eyebrow">TRY IT YOURSELF</span>
+            <h2>SEE THE VALIDATION,<br><em>LIVE.</em></h2>
+            <div class="problem-stack">
+              <p>Our Recent Validation Calendar: pick any recent date, see the real Argo floats that reported that day.</p>
+              <p class="accent"><strong>Compare them directly against our model's real prediction.</strong></p>
+            </div>
+            <a class="calendar-promo-cta" href="/solution?openCalendar=1">TRY THE VALIDATION CALENDAR &rarr;</a>
           </article>
         </div>
       </div>
@@ -873,7 +873,7 @@ body {
 
 .ocean-nav {
   position:fixed;
-  inset:0 0 auto 0;
+  inset:var(--tsb-height, 0px) 0 auto 0;
   height:70px;
   padding:0 clamp(1rem,4vw,4rem);
   display:flex;
@@ -1189,6 +1189,23 @@ body {
 }
 
 .impact-panel { width:min(590px,43vw); }
+/* Pinned to mid-screen (like the title panel) so it doesn't ride upward with the fast-rising seabed and collide with the nav. */
+.calendar-promo-panel { pointer-events:none; top:50% !important; }
+.calendar-promo-panel.on { pointer-events:auto; }
+.calendar-promo-cta {
+  display:inline-block;
+  margin-top:1.6rem;
+  padding:.8rem 1.3rem;
+  background:rgba(124,224,208,.12);
+  border:1px solid #7ce0d0;
+  border-radius:3px;
+  color:#eefaff;
+  font:600 .72rem/1 "Public Sans",sans-serif;
+  letter-spacing:.06em;
+  text-decoration:none;
+  transition:background .2s ease,transform .2s ease;
+}
+.calendar-promo-cta:hover { background:rgba(124,224,208,.25); transform:translateY(-1px); }
 .impact-flow {
   margin-top:1.8rem;
   width:min(500px,100%);
@@ -1321,7 +1338,7 @@ export default function OceanHero() {
          TUNING — every number worth changing lives here.
          ══════════════════════════════════════════════════════════════ */
       const CFG = {
-        maxDepth: 1200,   // metres at the end of the scroll
+        maxDepth: 1000,   // metres at the end of the scroll (was 1200; reduced to make room for the calendar-promo panel — all depth-keyed thresholds below are scaled by the same 5/6 factor)
         pxPerMetre: 2.6,    // ruler spacing, in viewBox units
         restEnd: 0.0,   // p: intro holds until here (now animates immediately)
         moveEnd: 0.18,  // p: boat stops sliding right, float starts diving
@@ -1515,13 +1532,13 @@ export default function OceanHero() {
 
         /* ---- depth calculation --------------------------------- */
         const depth = p <= M
-          ? mapE(p, R, M, 0, 50)
-          : map(p, M, 1, 50, CFG.maxDepth);
+          ? mapE(p, R, M, 0, 42)
+          : map(p, M, 1, 42, CFG.maxDepth);
 
         /* ---- surface: waterline climbs as we dive -------------- */
         const waterY = p <= M 
           ? mapE(p, R, M, Y(FY.waterRest), Y(FY.waterEnd))
-          : map(depth, 900, 1150, Y(FY.waterEnd), Y(-0.25));
+          : map(depth, 750, 958, Y(FY.waterEnd), Y(-0.25));
 
         /* ---- boat: shrinks and slides to the right ------------- */
         const narrow = band.w < 760;                 // portrait phone
@@ -1546,10 +1563,10 @@ export default function OceanHero() {
         /* ---- floating argo logic ------------------------------- */
 
         // Abyssal descent opacities
-        const surfaceOp = 1 - clamp((depth - 850) / 200);   // Fades down from 850m to 1050m
-        const signalFade = 1 - clamp((depth - 950) / 150);  // Fades down from 950m to 1100m
-        const bedOp = clamp((depth - 950) / 150);           // Grows from 950m to 1100m
-        const animalOp = 1 - clamp((depth - 1000) / 200);   // Fades down from 1000m to 1200m
+        const surfaceOp = 1 - clamp((depth - 708) / 167);   // Fades down from ~708m to ~875m
+        const signalFade = 1 - clamp((depth - 792) / 125);  // Fades down from ~792m to ~917m
+        const bedOp = clamp((depth - 792) / 125);           // Grows from ~792m to ~917m
+        const animalOp = 1 - clamp((depth - 833) / 167);   // Fades down from ~833m to maxDepth
 
         /* ---- water body + waves ------------------------------- */
         N.waterWrap.style.transform = `translate(0px,${waterY}px)`;
@@ -1585,10 +1602,10 @@ export default function OceanHero() {
 
         /* ---- depth cues --------------------------------------- */
         N.deepFade.setAttribute('opacity', '0');
-        N.skyDim.setAttribute('opacity', clamp(depth / 1100).toFixed(3));
-        N.argoHalo.setAttribute('opacity', clamp((depth - 120) / 420).toFixed(3));
-        N.rays.setAttribute('opacity', ((1 - clamp(depth / 260)) * surfaceOp).toFixed(3));
-        N.snow.setAttribute('opacity', clamp((depth - 140) / 220).toFixed(3));
+        N.skyDim.setAttribute('opacity', clamp(depth / 917).toFixed(3));
+        N.argoHalo.setAttribute('opacity', clamp((depth - 100) / 350).toFixed(3));
+        N.rays.setAttribute('opacity', ((1 - clamp(depth / 217)) * surfaceOp).toFixed(3));
+        N.snow.setAttribute('opacity', clamp((depth - 117) / 183).toFixed(3));
         N.pings.setAttribute('opacity', (0.35 + 0.65 * Math.abs(Math.sin(performance.now() / 900))).toFixed(3));
 
         /* ---- uplink beam -------------------------------------- */
@@ -1608,7 +1625,7 @@ export default function OceanHero() {
 
         /* ---- OceanEmbed story layer ---------------------------- */
         const f_water = (waterY - band.top) / band.h;
-        const currentBedY = map(depth, 800, 1200, 600, 0);
+        const currentBedY = map(depth, 667, 1000, 600, 0);
         const f_bed = (420 + currentBedY - band.top) / band.h;
 
         const safeTopMargin = window.innerWidth < 700 ? 10 : 14;
@@ -1624,10 +1641,10 @@ export default function OceanHero() {
           const active = depth >= from && depth < to;
           panel.classList.toggle('on', active);
 
-          if (active && !panel.classList.contains('story-hero')) {
+          if (active && !panel.classList.contains('story-hero') && !panel.classList.contains('calendar-promo-panel')) {
             const ph = (panel.offsetHeight / window.innerHeight) * 100;
             // Inject small custom offset exclusively for Data Gap panel
-            const isDataGap = from === 280;
+            const isDataGap = from === 236;
             const extraOffset = isDataGap ? (window.innerWidth < 700 ? 6 : 8) : 0;
             
             let center = (safeTopVh + safeBotVh) / 2 + extraOffset;
@@ -1638,7 +1655,7 @@ export default function OceanHero() {
         });
         N.navButtons.forEach((b) => {
           const d = +b.dataset.depth;
-          b.classList.toggle('active', Math.abs(depth - d) < 110);
+          b.classList.toggle('active', Math.abs(depth - d) < 92);
         });
         N.navDepth.textContent = String(Math.round(depth / 10) * 10).padStart(3, '0') + 'm';
 
@@ -1656,27 +1673,27 @@ export default function OceanHero() {
 
         /* ---- MARINE ECOSYSTEM DYNAMICS ------------------------ */
         if (N.marineFish) {
-          const fishY = map(depth, 30, 250, 950, -150);
+          const fishY = map(depth, 25, 208, 950, -150);
           N.marineFish.style.transform = `translate(0px,${fishY}px)`;
           N.marineFish.style.opacity = animalOp.toFixed(3);
         }
         if (N.marineShark) {
-          const sharkY = map(depth, 150, 500, 950, -150);
+          const sharkY = map(depth, 125, 417, 950, -150);
           N.marineShark.style.transform = `translate(0px,${sharkY}px)`;
           N.marineShark.style.opacity = animalOp.toFixed(3);
         }
         if (N.marineWhale) {
-          const whaleY = map(depth, 400, 750, 1050, -250);
+          const whaleY = map(depth, 333, 625, 1050, -250);
           N.marineWhale.style.transform = `translate(0px,${whaleY}px)`;
           N.marineWhale.style.opacity = animalOp.toFixed(3);
         }
         if (N.marineOcto) {
-          const octoY = map(depth, 650, 1000, 950, -100);
+          const octoY = map(depth, 542, 833, 950, -100);
           N.marineOcto.style.transform = `translate(0px,${octoY}px)`;
           N.marineOcto.style.opacity = animalOp.toFixed(3);
         }
         if (N.marineBed) {
-          const bedY = map(depth, 800, 1200, 600, 0);
+          const bedY = map(depth, 667, 1000, 600, 0);
           N.marineBed.style.transform = `translate(0px,${bedY}px)`;
           N.marineBed.style.opacity = bedOp.toFixed(3);
         }
@@ -1685,8 +1702,8 @@ export default function OceanHero() {
         if (N.heroTitle) {
           // Title timing driven natively by exact physical depth metrics, guaranteeing the exact 35m trigger flawlessly
           // automatically avoiding desynchronization on wildly expanded track heights.
-          const titleP = clamp((depth - 35) / 15);
-          const revealP = clamp((depth - 42) / 8);
+          const titleP = clamp((depth - 29) / 13);
+          const revealP = clamp((depth - 35) / 7);
 
           const dx = mapE(titleP, 0, 1, titleCenterDx, 0);
           const dy = mapE(titleP, 0, 1, titleCenterDy, 0);

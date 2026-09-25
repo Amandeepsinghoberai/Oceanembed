@@ -1,0 +1,662 @@
+{
+ "live_bay": {
+  "path": "/api/live-predict/stream",
+  "params": {
+   "lat": 13.14,
+   "lon": 86.75
+  },
+  "captured_at": "2026-09-25T00:17:39+00:00",
+  "http_status": 200,
+  "content_type": "text/event-stream; charset=utf-8",
+  "url": "{BASE}/api/live-predict/stream?lat=13.14&lon=86.75",
+  "events": [
+   {
+    "t": 0.9,
+    "data": {
+     "step": "Fetching live sea surface temperature...",
+     "done": false
+    }
+   },
+   {
+    "t": 7.2,
+    "data": {
+     "step": "Fetching live sea level data...",
+     "done": false
+    }
+   },
+   {
+    "t": 17.4,
+    "data": {
+     "step": "Checking for nearby recent real Argo measurements...",
+     "done": false
+    }
+   },
+   {
+    "t": 18.8,
+    "data": {
+     "step": "complete",
+     "done": true,
+     "result": {
+      "location": {
+       "lat": 13.14,
+       "lon": 86.75,
+       "region": "Bay of Bengal"
+      },
+      "mode": "live",
+      "data_dates": {
+       "sst": "2026-09-23",
+       "ssh": "2026-09-23"
+      },
+      "surface_state": {
+       "sst_c": 28.58,
+       "ssh_m": 0.151
+      },
+      "profile": {
+       "depths_m": [
+        0,
+        5,
+        10,
+        20,
+        30,
+        50,
+        75,
+        100,
+        125,
+        150,
+        200,
+        300,
+        500,
+        700,
+        1000
+       ],
+       "predicted_temp_c": [
+        28.7,
+        28.66,
+        28.63,
+        28.53,
+        28.37,
+        27.85,
+        26.35,
+        23.73,
+        20.67,
+        17.88,
+        14.42,
+        11.74,
+        9.97,
+        8.54,
+        6.7
+       ]
+      },
+      "recent_argo_context": {
+       "status": "found",
+       "surface_temp_c": 29.13,
+       "date": "2026-08-29",
+       "days_ago": 26,
+       "lat": 13.04,
+       "lon": 87.03,
+       "distance_km": 33.0
+      }
+     }
+    }
+   }
+  ],
+  "keepalive_comments": 0,
+  "elapsed_s": 18.8
+ },
+ "live_arabian": {
+  "path": "/api/live-predict/stream",
+  "params": {
+   "lat": 19.36,
+   "lon": 58.65
+  },
+  "captured_at": "2026-09-25T00:17:58+00:00",
+  "http_status": 200,
+  "content_type": "text/event-stream; charset=utf-8",
+  "url": "{BASE}/api/live-predict/stream?lat=19.36&lon=58.65",
+  "events": [
+   {
+    "t": 0.8,
+    "data": {
+     "step": "Fetching live sea surface temperature...",
+     "done": false
+    }
+   },
+   {
+    "t": 7.3,
+    "data": {
+     "step": "Fetching live sea level data...",
+     "done": false
+    }
+   },
+   {
+    "t": 13.9,
+    "data": {
+     "step": "Fetching live salinity data...",
+     "done": false
+    }
+   },
+   {
+    "t": 35.2,
+    "data": {
+     "step": "Fetching live mixed layer depth...",
+     "done": false
+    }
+   },
+   {
+    "t": 42.2,
+    "data": {
+     "step": "Fetching live wind data and computing ocean rotation...",
+     "done": false
+    }
+   },
+   {
+    "t": 50.2,
+    "data": {
+     "step": "Checking for nearby recent real Argo measurements...",
+     "done": false
+    }
+   },
+   {
+    "t": 51.3,
+    "data": {
+     "step": "complete",
+     "done": true,
+     "result": {
+      "location": {
+       "lat": 19.36,
+       "lon": 58.65,
+       "region": "Arabian Sea"
+      },
+      "mode": "live",
+      "data_dates": {
+       "sst": "2026-09-23",
+       "ssh": "2026-09-23",
+       "sss": "2026-09-18",
+       "mld": "2026-09-23",
+       "curl": "2026-09-23"
+      },
+      "surface_state": {
+       "sst_c": 25.96,
+       "ssh_m": 0.009,
+       "wind_stress_curl": 2.531e-07,
+       "mld_m": 10.9,
+       "sss_psu": 35.93,
+       "eddy_vorticity": -3.7785055559877914e-06
+      },
+      "profile": {
+       "depths_m": [
+        0,
+        5,
+        10,
+        20,
+        30,
+        50,
+        75,
+        100,
+        125,
+        150,
+        200,
+        300,
+        500,
+        700,
+        1000
+       ],
+       "predicted_temp_c": [
+        26.19,
+        26.19,
+        26.02,
+        25.27,
+        24.19,
+        22.66,
+        21.02,
+        19.46,
+        18.08,
+        17.09,
+        15.8,
+        14.02,
+        12.41,
+        11.28,
+        8.94
+       ]
+      },
+      "recent_argo_context": {
+       "status": "found",
+       "surface_temp_c": 26.92,
+       "date": "2026-09-14",
+       "days_ago": 10,
+       "lat": 19.01,
+       "lon": 59.0,
+       "distance_km": 55.0
+      }
+     }
+    }
+   }
+  ],
+  "keepalive_comments": 1,
+  "elapsed_s": 51.3
+ },
+ "state_bay": {
+  "path": "/api/ocean-state",
+  "params": {
+   "lat": 13.14,
+   "lon": 86.75
+  },
+  "captured_at": "2026-09-25T00:18:49+00:00",
+  "http_status": 200,
+  "content_type": "application/json",
+  "url": "{BASE}/api/ocean-state?lat=13.14&lon=86.75",
+  "body": {
+   "location": {
+    "lat": 13.14,
+    "lon": 86.75
+   },
+   "surface": {
+    "sst_c": 28.58,
+    "sss_psu": 32.92,
+    "current_u_ms": 0.276,
+    "current_v_ms": 0.259,
+    "ssh_m": 0.151,
+    "wind_u_ms": 8.23,
+    "wind_v_ms": 9.03
+   },
+   "subsurface": {
+    "source": "OceanEmbed",
+    "depth_m": [
+     0,
+     5,
+     10,
+     20,
+     30,
+     50,
+     75,
+     100,
+     125,
+     150,
+     200,
+     300,
+     500,
+     700,
+     1000
+    ],
+    "temperature_c": [
+     28.7,
+     28.66,
+     28.63,
+     28.53,
+     28.37,
+     27.85,
+     26.35,
+     23.73,
+     20.67,
+     17.88,
+     14.42,
+     11.74,
+     9.97,
+     8.54,
+     6.7
+    ],
+    "valid": true
+   },
+   "reference": {
+    "source": "GLORYS climatology (Bay of Bengal only)",
+    "temperature_c_by_depth": [
+     29.36,
+     29.28,
+     29.27,
+     29.23,
+     29.13,
+     28.46,
+     26.35,
+     23.69,
+     20.87,
+     18.31,
+     14.97,
+     11.99,
+     10.01,
+     8.48,
+     6.67
+    ],
+    "same_depth": true
+   },
+   "derived": {
+    "current_speed_ms": 0.378,
+    "current_direction_deg": 46.8,
+    "vertical_gradient_c_per_m": [
+     -0.008,
+     -0.006,
+     -0.01,
+     -0.016,
+     -0.026,
+     -0.06,
+     -0.1048,
+     -0.1224,
+     -0.1116,
+     -0.0692,
+     -0.0268,
+     -0.0088,
+     -0.0072,
+     -0.0061
+    ],
+    "temperature_anomaly_c": [
+     -0.66,
+     -0.62,
+     -0.64,
+     -0.7,
+     -0.76,
+     -0.61,
+     0.0,
+     0.04,
+     -0.2,
+     -0.43,
+     -0.55,
+     -0.25,
+     -0.04,
+     0.06,
+     0.03
+    ],
+    "wind_speed_ms": 12.22,
+    "wind_direction_deg": 42.3
+   },
+   "provenance": [
+    "CMEMS Currents",
+    "CMEMS Wind",
+    "GLORYS",
+    "OSTIA",
+    "OceanEmbed",
+    "SMAP"
+   ]
+  },
+  "elapsed_s": 53.6
+ },
+ "state_arabian": {
+  "path": "/api/ocean-state",
+  "params": {
+   "lat": 19.36,
+   "lon": 58.65
+  },
+  "captured_at": "2026-09-25T00:19:43+00:00",
+  "http_status": 200,
+  "content_type": "application/json",
+  "url": "{BASE}/api/ocean-state?lat=19.36&lon=58.65",
+  "body": {
+   "location": {
+    "lat": 19.36,
+    "lon": 58.65
+   },
+   "surface": {
+    "sst_c": 25.96,
+    "sss_psu": 35.93,
+    "current_u_ms": -0.078,
+    "current_v_ms": -0.139,
+    "ssh_m": 0.009,
+    "wind_u_ms": 3.1,
+    "wind_v_ms": 3.45
+   },
+   "subsurface": {
+    "source": "OceanEmbed",
+    "depth_m": [
+     0,
+     5,
+     10,
+     20,
+     30,
+     50,
+     75,
+     100,
+     125,
+     150,
+     200,
+     300,
+     500,
+     700,
+     1000
+    ],
+    "temperature_c": [
+     26.19,
+     26.19,
+     26.02,
+     25.27,
+     24.19,
+     22.66,
+     21.02,
+     19.46,
+     18.08,
+     17.09,
+     15.8,
+     14.02,
+     12.41,
+     11.28,
+     8.94
+    ],
+    "valid": true
+   },
+   "reference": {
+    "source": null,
+    "temperature_c_by_depth": null,
+    "same_depth": false
+   },
+   "derived": {
+    "current_speed_ms": 0.159,
+    "current_direction_deg": 209.2,
+    "vertical_gradient_c_per_m": [
+     0.0,
+     -0.034,
+     -0.075,
+     -0.108,
+     -0.0765,
+     -0.0656,
+     -0.0624,
+     -0.0552,
+     -0.0396,
+     -0.0258,
+     -0.0178,
+     -0.008,
+     -0.0057,
+     -0.0078
+    ],
+    "temperature_anomaly_c": null,
+    "wind_speed_ms": 4.64,
+    "wind_direction_deg": 41.9
+   },
+   "provenance": [
+    "CMEMS Currents",
+    "CMEMS Wind",
+    "OSTIA",
+    "OceanEmbed"
+   ]
+  },
+  "elapsed_s": 77.5
+ },
+ "state_stream_bay": {
+  "path": "/api/ocean-state/stream",
+  "params": {
+   "lat": 13.14,
+   "lon": 86.75
+  },
+  "captured_at": "2026-09-25T00:21:00+00:00",
+  "http_status": 200,
+  "content_type": "text/event-stream; charset=utf-8",
+  "url": "{BASE}/api/ocean-state/stream?lat=13.14&lon=86.75",
+  "events": [
+   {
+    "t": 0.7,
+    "data": {
+     "step": "Fetching live sea surface temperature...",
+     "done": false
+    }
+   },
+   {
+    "t": 6.8,
+    "data": {
+     "step": "Fetching live sea level data...",
+     "done": false
+    }
+   },
+   {
+    "t": 13.4,
+    "data": {
+     "step": "Checking for nearby recent real Argo measurements...",
+     "done": false
+    }
+   },
+   {
+    "t": 14.4,
+    "data": {
+     "step": "Fetching live salinity data...",
+     "done": false
+    }
+   },
+   {
+    "t": 23.9,
+    "data": {
+     "step": "Fetching live ocean current data...",
+     "done": false
+    }
+   },
+   {
+    "t": 37.2,
+    "data": {
+     "step": "Fetching live wind data...",
+     "done": false
+    }
+   },
+   {
+    "t": 53.7,
+    "data": {
+     "step": "Checking reference baseline...",
+     "done": false
+    }
+   },
+   {
+    "t": 53.7,
+    "data": {
+     "step": "complete",
+     "done": true,
+     "result": {
+      "location": {
+       "lat": 13.14,
+       "lon": 86.75
+      },
+      "surface": {
+       "sst_c": 28.58,
+       "sss_psu": 32.92,
+       "current_u_ms": 0.276,
+       "current_v_ms": 0.259,
+       "ssh_m": 0.151,
+       "wind_u_ms": 8.23,
+       "wind_v_ms": 9.03
+      },
+      "subsurface": {
+       "source": "OceanEmbed",
+       "depth_m": [
+        0,
+        5,
+        10,
+        20,
+        30,
+        50,
+        75,
+        100,
+        125,
+        150,
+        200,
+        300,
+        500,
+        700,
+        1000
+       ],
+       "temperature_c": [
+        28.7,
+        28.66,
+        28.63,
+        28.53,
+        28.37,
+        27.85,
+        26.35,
+        23.73,
+        20.67,
+        17.88,
+        14.42,
+        11.74,
+        9.97,
+        8.54,
+        6.7
+       ],
+       "valid": true
+      },
+      "reference": {
+       "source": "GLORYS climatology (Bay of Bengal only)",
+       "temperature_c_by_depth": [
+        29.36,
+        29.28,
+        29.27,
+        29.23,
+        29.13,
+        28.46,
+        26.35,
+        23.69,
+        20.87,
+        18.31,
+        14.97,
+        11.99,
+        10.01,
+        8.48,
+        6.67
+       ],
+       "same_depth": true
+      },
+      "derived": {
+       "current_speed_ms": 0.378,
+       "current_direction_deg": 46.8,
+       "vertical_gradient_c_per_m": [
+        -0.008,
+        -0.006,
+        -0.01,
+        -0.016,
+        -0.026,
+        -0.06,
+        -0.1048,
+        -0.1224,
+        -0.1116,
+        -0.0692,
+        -0.0268,
+        -0.0088,
+        -0.0072,
+        -0.0061
+       ],
+       "temperature_anomaly_c": [
+        -0.66,
+        -0.62,
+        -0.64,
+        -0.7,
+        -0.76,
+        -0.61,
+        0.0,
+        0.04,
+        -0.2,
+        -0.43,
+        -0.55,
+        -0.25,
+        -0.04,
+        0.06,
+        0.03
+       ],
+       "wind_speed_ms": 12.22,
+       "wind_direction_deg": 42.3
+      },
+      "provenance": [
+       "CMEMS Currents",
+       "CMEMS Wind",
+       "GLORYS",
+       "OSTIA",
+       "OceanEmbed",
+       "SMAP"
+      ]
+     }
+    }
+   }
+  ],
+  "keepalive_comments": 1,
+  "elapsed_s": 53.7
+ }
+}

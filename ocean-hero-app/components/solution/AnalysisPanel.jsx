@@ -37,7 +37,7 @@ const SURFACE_FIELDS = [
   { key: 'eddy_vorticity', label: 'EDDY VORTICITY', format: (v) => `${v.toExponential(2)} 1/s` },
 ];
 
-export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, setIsSurface, selectedId, arbitraryPoint }) {
+export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, setIsSurface, selectedId, arbitraryPoint, restore, onShareState }) {
   const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -101,6 +101,34 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
 
   // Close the connection if the panel unmounts mid-stream.
   useEffect(() => () => liveSourceRef.current?.close(), []);
+
+  // "X real Argo floats reported in this region in the last 7 days" — a real
+  // count from the real Argo index, for whichever region is currently being
+  // viewed. Fetched once per region per page load (cached in a ref), never on
+  // every render or every point change within the same region.
+  const viewedRegionName = isArbitrary ? arbitraryPoint?.region : result?.location?.region;
+  const viewedRegionKey = viewedRegionName === 'Arabian Sea' ? 'arabian_sea'
+    : viewedRegionName === 'Bay of Bengal' ? 'bay_of_bengal' : null;
+  const recentCountCache = useRef({});
+  const [recentCount, setRecentCount] = useState({ key: null, data: null, failed: false });
+
+  useEffect(() => {
+    if (!viewedRegionKey) return;
+    if (recentCountCache.current[viewedRegionKey]) {
+      setRecentCount({ key: viewedRegionKey, data: recentCountCache.current[viewedRegionKey], failed: false });
+      return;
+    }
+    let cancelled = false;
+    setRecentCount({ key: viewedRegionKey, data: null, failed: false });
+    fetch(`${LIVE_API_BASE}/api/recent-argo-count?region=${viewedRegionKey}`)
+      .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then((data) => {
+        recentCountCache.current[viewedRegionKey] = data;
+        if (!cancelled) setRecentCount({ key: viewedRegionKey, data, failed: false });
+      })
+      .catch(() => { if (!cancelled) setRecentCount({ key: viewedRegionKey, data: null, failed: true }); });
+    return () => { cancelled = true; };
+  }, [viewedRegionKey]);
 
   function startLivePrediction(lat, lon) {
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
@@ -184,6 +212,46 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
     }
   }
 
+  // Exports the currently displayed real result (whichever tab is active) as
+  // a CSV: location/date/mode, then one row per one of the model's 15 real
+  // depths with the real predicted temperature and, where available, the
+  // real Argo temperature. Built entirely from state already in this
+  // component - no new fetch.
+  function handleDownloadCsv() {
+    const active = isLive ? liveResult : result;
+    if (!active?.profile) return;
+    const { location, profile } = active;
+    // Live results carry per-variable fetch dates (data_dates), not one
+    // top-level date — use the same "most recent real source date" already
+    // shown in the LAST UPDATED line above, so the CSV matches the UI.
+    const date = isLive ? liveMostRecentDate : active.date;
+    const rows = [
+      ['location_lat', location?.lat ?? ''],
+      ['location_lon', location?.lon ?? ''],
+      ['region', location?.region ?? ''],
+      ['date', date ?? ''],
+      ['mode', isLive ? 'live' : 'historical'],
+      [],
+      ['depth_m', 'predicted_temp_c', 'argo_temp_c'],
+      ...profile.depths_m.map((d, i) => [
+        d,
+        profile.predicted_temp_c?.[i] ?? '',
+        profile.argo_temp_c?.[i] ?? '',
+      ]),
+    ];
+    const csv = rows.map((row) => row.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safeRegion = (location?.region || 'oceanembed').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    a.href = url;
+    a.download = `oceanembed-${safeRegion}-${date || 'prediction'}-${isLive ? 'live' : 'historical'}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   // ---- Historical derivations ----
   const depthsM = result?.profile?.depths_m || DEFAULT_DEPTHS_M;
   const clampedDepthIndex = Math.min(depthIndex, depthsM.length - 1);
@@ -244,6 +312,51 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
 
   const activeSurfaceTemp = isLive ? liveResult?.surface_state?.sst_c : result?.surface_state?.sst_c;
 
+  // ---- Shareable permalink (additive; the toggle/fetch logic above is only
+  // CALLED here, never changed) ----
+  // 1. Restoring a LIVE link for a known demo point: once that point's saved
+  //    result has loaded, press LIVE exactly as a user would (a real, fresh
+  //    live fetch). Arbitrary points already go live on their own.
+  const pendingLiveRestoreRef = useRef(null);
+  useEffect(() => {
+    if (restore && restore.mode === 'live') pendingLiveRestoreRef.current = restore;
+  }, [restore]);
+  useEffect(() => {
+    const r = pendingLiveRestoreRef.current;
+    if (!r || isArbitrary || isLoading || !result?.location) return;
+    if (Math.abs(result.location.lat - r.lat) > 2e-4 || Math.abs(result.location.lon - r.lon) > 2e-4) return;
+    pendingLiveRestoreRef.current = null;
+    handleTabClick('live');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result, isLoading, restore, isArbitrary]);
+
+  // 2. Report what is currently shown (location, mode, date) so the page can
+  //    keep the URL in sync. Live date = the most recent real source date of
+  //    the live result; absent while the live fetch is still running.
+  useEffect(() => {
+    if (!onShareState) return;
+    if (isArbitrary) {
+      onShareState({ lat: arbitraryPoint.lat, lon: arbitraryPoint.lon, mode: 'live', date: liveResult ? liveMostRecentDate : null });
+      return;
+    }
+    if (isLoading || !result?.location) return;
+    onShareState(isLive
+      ? { lat: result.location.lat, lon: result.location.lon, mode: 'live', date: liveResult ? liveMostRecentDate : null }
+      : { lat: result.location.lat, lon: result.location.lon, mode: 'historical', date: result.date });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isArbitrary, arbitraryPoint?.lat, arbitraryPoint?.lon, isLive, isLoading, result, liveResult, liveMostRecentDate]);
+
+  const [linkCopied, setLinkCopied] = useState(false);
+  async function handleCopyLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2200);
+    } catch {
+      window.prompt('Copy this link to the current result:', window.location.href);
+    }
+  }
+
   return (
     <div className="analysis-panel">
 
@@ -290,6 +403,12 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
         </button>
       </div>
 
+      <div className="permalink-row">
+        <button type="button" className="copy-link-btn" onClick={handleCopyLink}>
+          {linkCopied ? 'LINK COPIED' : 'COPY LINK TO THIS RESULT'}
+        </button>
+      </div>
+
       <div className="panel-section">
         <div className="section-label">LOCATION</div>
         <div className="location-readout">
@@ -309,6 +428,12 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
                 </div>
               )}
             </>
+          )}
+          {recentCount.key === viewedRegionKey && recentCount.data && (
+            <div className="recent-floats">
+              <i className="recent-floats-dot" />
+              {recentCount.data.count} real Argo float{recentCount.data.count === 1 ? '' : 's'} reported in the {viewedRegionName} in the last {recentCount.data.window_days} days
+            </div>
           )}
         </div>
       </div>
@@ -344,6 +469,9 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
                 ? (liveResult ? `LIVE — ${liveMostRecentDate}` : "—")
                 : (result?.date || "—")}
             </span>
+            {isLive && liveResult && liveMostRecentDate && (
+              <span className="metric-source">LAST UPDATED: {formatArgoDate(liveMostRecentDate)} (latest real source data used)</span>
+            )}
          </div>
       </div>
 
@@ -471,6 +599,9 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
                 </>
               )}
             </div>
+            <button type="button" className="csv-download-btn" onClick={handleDownloadCsv}>
+              DOWNLOAD AS CSV
+            </button>
           </div>
         </>
       )}
@@ -529,6 +660,42 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
           display: flex;
           gap: 1rem;
           margin-bottom: 0.5rem;
+        }
+
+        .permalink-row { display: flex; }
+        .copy-link-btn {
+          background: rgba(120, 203, 233, 0.08);
+          border: 1px solid rgba(120, 203, 233, 0.3);
+          color: #78CBE9;
+          font-family: var(--font-space-grotesk), sans-serif;
+          font-size: 0.58rem;
+          font-weight: 600;
+          letter-spacing: 0.06em;
+          padding: 0.4rem 0.7rem;
+          border-radius: 2px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .copy-link-btn:hover { background: rgba(120, 203, 233, 0.18); color: #fff; }
+
+        .csv-download-btn {
+          margin-top: 0.7rem;
+          align-self: flex-start;
+          background: rgba(120, 203, 233, 0.08);
+          border: 1px solid rgba(120, 203, 233, 0.3);
+          color: #78CBE9;
+          font-family: var(--font-space-grotesk), sans-serif;
+          font-size: 0.6rem;
+          font-weight: 600;
+          letter-spacing: 0.06em;
+          padding: 0.45rem 0.75rem;
+          border-radius: 2px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .csv-download-btn:hover {
+          background: rgba(120, 203, 233, 0.18);
+          color: #fff;
         }
 
         .panel-mode-selector button {
@@ -594,6 +761,25 @@ export default function AnalysisPanel({ depthIndex, setDepthIndex, isSurface, se
           font-size: 0.75rem;
           color: #7ce0d0;
           letter-spacing: 0.05em;
+        }
+
+        .recent-floats {
+          margin-top: 0.35rem;
+          display: flex;
+          align-items: center;
+          gap: 0.45rem;
+          font-size: 0.66rem;
+          line-height: 1.4;
+          color: rgba(238, 250, 255, 0.7);
+        }
+
+        .recent-floats-dot {
+          flex: 0 0 auto;
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: #e28c31;
+          box-shadow: 0 0 8px rgba(226, 140, 49, 0.7);
         }
 
         .temp-readout {

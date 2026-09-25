@@ -54,7 +54,7 @@ export default function SiteNavbar() {
       <style>{`
         .ocean-nav.site-nav {
           position: fixed;
-          top: 0;
+          top: var(--tsb-height, 0px);
           left: 0;
           right: 0;
           height: 70px;

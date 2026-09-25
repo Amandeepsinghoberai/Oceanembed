@@ -4,6 +4,7 @@ import { useState } from "react";
 import SiteNavbar from "@/components/SiteNavbar";
 import Footer from "@/components/Footer";
 import OceanEmbedHeroVisualization from "@/components/technology/OceanEmbedHeroVisualization";
+import { REGION_SUMMARY, formatCount } from "@/lib/modelStats";
 
 const pipeline = [
   { number: "01", title: "SURFACE OBSERVATIONS", text: "Daily SST, SSS, SSH / SLA, currents, and winds define the observed surface state.", tags: ["SST", "SSS", "SSH", "+4"] },
@@ -48,18 +49,6 @@ const ARABIAN_SEA_DEPTH_METRICS = [
   { depth: 150, rmse: 1.026, corr: 0.865 }, { depth: 200, rmse: 1.050, corr: 0.872 }, { depth: 300, rmse: 0.846, corr: 0.886 },
   { depth: 500, rmse: 0.540, corr: 0.873 }, { depth: 700, rmse: 0.475, corr: 0.891 }, { depth: 1000, rmse: 0.431, corr: 0.879 },
 ];
-
-// Fixed en-US thousands grouping — Number.toLocaleString() depends on the
-// runtime's locale, which differs between server (SSR) and browser and
-// causes a hydration mismatch. This is deterministic on both sides.
-function formatCount(n: number): string {
-  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
-
-const REGION_SUMMARY: Record<string, { rmse: number; correlation: number; n: number; inputs: string[]; clusters: number; bias: number }> = {
-  "BAY OF BENGAL": { rmse: 0.637, correlation: 0.997, n: 30019, inputs: ["SST", "SSH"], clusters: 5, bias: -0.385 },
-  "ARABIAN SEA": { rmse: 0.834, correlation: 0.988, n: 2129593, inputs: ["SST", "SSH", "Wind Stress Curl", "MLD", "SSS", "Eddy Vorticity"], clusters: 10, bias: 0.066 },
-};
 
 const uncertaintyFindings = [
   "Both regions reconstruct the near-surface layer (0–10 m) most reliably — Bay of Bengal RMSE holds at 0.24–0.26°C, Arabian Sea at 0.62–1.03°C.",
