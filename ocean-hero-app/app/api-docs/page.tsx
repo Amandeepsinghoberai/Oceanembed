@@ -36,6 +36,15 @@ function Code({ children, label }: { children: string; label?: string }) {
   );
 }
 
+function WindowsCurlNote() {
+  return (
+    <p className="ad-winnote">
+      <strong>Windows PowerShell users:</strong> plain <code>curl</code> is an alias for <code>Invoke-WebRequest</code>, not the real curl, and fails
+      with &ldquo;A parameter cannot be found that matches parameter name &apos;N&apos;.&rdquo; Type <code>curl.exe</code> instead of <code>curl</code>.
+    </p>
+  );
+}
+
 function Params({ rows }: { rows: [string, string, string, string][] }) {
   return (
     <div className="ad-table-wrap">
@@ -169,6 +178,7 @@ export default function ApiDocsPage() {
 
           <h3>Example: curl</h3>
           <p><code>-N</code> turns off curl&apos;s output buffering so you see events as they arrive.</p>
+          <WindowsCurlNote />
           <Code label="request">{snippets.curlLive}</Code>
           <Code label={`real response, Bay of Bengal, captured ${day(liveBay.captured_at)}, ${liveBay.elapsed_s.toFixed(1)} s total`}>{wire(liveBay)}</Code>
 
@@ -226,6 +236,7 @@ export default function ApiDocsPage() {
           ]} />
 
           <h3>Example: curl</h3>
+          <WindowsCurlNote />
           <Code label="request">{snippets.curlState}</Code>
           <Code label={`real response, Bay of Bengal, captured ${day(stateBay.captured_at)}, ${stateBay.elapsed_s.toFixed(1)} s`}>{json(stateBay.body)}</Code>
 
@@ -341,6 +352,7 @@ content-type: application/json
         .ad-wrap a { color: #78CBE9; }
         .ad-callout { margin: 32px 0 0; padding: 20px 22px; border: 1px solid rgba(255, 196, 92, 0.55); background: rgba(255, 196, 92, 0.08); border-radius: 10px; }
         .ad-callout h2 { margin: 0 0 10px; padding: 0; border: 0; font-size: 1.25rem; color: #ffd27a; }
+        .ad-winnote { margin: 10px 0; padding: 9px 14px; border-left: 3px solid #ffd27a; background: rgba(255, 196, 92, 0.1); border-radius: 0 6px 6px 0; font-size: 0.88rem !important; line-height: 1.55; }
         .ad-note { border-left: 3px solid #78CBE9; padding-left: 14px; }
         .ad-toc { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 28px 0 0; font-size: 0.9rem; }
         .ad-toc a { text-decoration: none; }
